@@ -1,0 +1,124 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
+<link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
+<link rel="import" href="eclipse-section/eclipse-section.html">
+<link rel="import" href="eclipse-text-box/eclipse-text-box.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-megamovie">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+
+      .attribution a:hover {
+        text-decoration:underline;
+      }
+
+      .attribution a {
+        color: var(--paper-yellow-500);
+        text-decoration:none;
+      }
+
+      .attribution {
+        @apply(--paper-font-caption);
+        @apply(--layout-self-end);
+        background: rgba(0,0,0,.6);
+        padding: 4px;
+        position:absolute;
+        right:0;
+        bottom: 0;
+      }
+    </style>
+
+    <!-- Megamovie page content -->
+    <div id="main">
+      <eclipse-section size="{{goalData.size}}" color="{{goalData.color}}">
+        <img src="/images/03_Megamovie_01.svg"/>
+        <eclipse-text-box class="goal-box" title="{{goalData.title}}" body="{{goalData.body}}" has-links-in-body="true">
+        </eclipse-text-box>
+      </eclipse-section>
+      <eclipse-scroll-button></eclipse-scroll-button>
+      <eclipse-section name="science" size="{{megamovieData.size}}" color="{{megamovieData.color}}">
+        <img src="/images/03_Megamovie_02.svg"/>
+        <eclipse-text-box title="{{megamovieData.title}}" body="{{megamovieData.body}}" has-links-in-body="true">
+        </eclipse-text-box>
+      </eclipse-section>
+      <eclipse-section size="{{participateData.size}}" color="{{participateData.color}}">
+        <img src="/images/03_Megamovie_03.svg"/>
+        <eclipse-text-box title="{{participateData.title}}" body="{{participateData.body}}" has-links-in-body="true">
+        </eclipse-text-box>
+      </eclipse-section>
+      <eclipse-section size="{{historyData.size}}" color="{{historyData.color}}" bg="/images/03_Megamovie_04.jpg"  alignment="start">
+        <eclipse-text-box title="{{historyData.title}}" body="{{historyData.body}}" bg="{{historyData.textBackground}}" has-links-in-body="true">
+        </eclipse-text-box>
+        <div class="attribution">Photo by James McClean, <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></div>
+      </eclipse-section>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-megamovie',
+      behaviors: [EclipseBehaviors.ScrollToAnchorBehavior],
+
+      properties: {
+        goalData: {
+          type: Object,
+          value: {
+            size: "large",
+            color: "#4481f8",
+            title: "Goal of the Project",
+            body: "The primary goal of the Eclipse Megamovie Project is to produce a high definition, time-expanded video of the total solar eclipse that will cross North America from the northwest to the southeast on August 21, 2017. The Megamovie video will be pieced together from images collected by citizen scientists at various points along the <a href='http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html' target='_blank'>eclipse path</a>. This will provide continuous datasets that far exceed what any one person could capture from a single location, where the longest duration of totality possible would be under three minutes. The Eclipse Megamovie, by contrast, will be about two hours long. "
+          }
+        },
+        megamovieData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#283593",
+            title: "Expected Science Discoveries",
+            body: "The Eclipse Megamovie Project will add a new dimension to our studies of the Sun’s faint outer atmosphere – the corona. By stitching together thousands of real-time images taken <a href='http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html' target='_blank'>along the path of the 2017 total solar eclipse</a>, we will have a unique treasure-trove of information on how the corona changes over time. Radio-wave studies have allowed us to closely observe very rapid variations of the corona, but now we expect to study such processes directly using visible light and thus enrich our knowledge of the Sun’s dynamic atmosphere considerably. The data gathered via the Eclipse Megamovie Project will be made available publicly and are expected to allow scientists to analyze the Sun’s corona for many years to come. Furthermore, we will have an opportunity to repeat this experiment when another total eclipse crosses the U.S. in 2024.  This will show how the Sun changes over a few hours, but also how it’s different after a period of seven years.\n\nOf particular interest to our team are the moments when the Sun is almost totally eclipsed and again when it is just coming out of total eclipse, when observers can view something called “the diamond ring effect.”  More light from the Sun can be seen at this time through a single valley on one side of the Moon. This produces a flash of light that joins the fainter light from the corona that surrounds the Moon, thus creating something that looks like an enormous diamond ring - similar to what someone might wear on their finger. We will be able to study this effect and how it changes with time, which may also allow us to measure the size of the Sun with better precision."
+          }
+        },
+        participateData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#0f9d58",
+            title: "How to Participate",
+            body: "If you will be along the path of totality for the total solar eclipse on August 21, 2017, then we hope you can participate in the Eclipse Megamovie Project! We want as many photos of the eclipse as we can gather, and we will have a special upload site for the public to submit their photos.\n\nOver 1,000 experienced photographers will be part of a special team taking photos from known locations and with verified equipment. Others will be able to simply use their mobile devices with the Megamovie app that’s currently in development. Mobile device users will also be given the opportunity to purchase low-cost tripods and filters for their devices that will work in tandem with the Megamovie app in order to achieve higher quality images, all while minimizing interruption of their personal enjoyment of the eclipse.\n\nSign in using the link above to create a profile, check if you'll be in the path of totality and learn more about the ways you can participate."
+          }
+        },
+        historyData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#000000",
+            title: "Project History",
+            textBackground: "rgba(0,0,0,.6)",
+            body: "In 2011, Dr. Hugh Hudson from the <a href='http://www.ssl.berkeley.edu/' target='_blank'>Space Sciences Laboratory</a> at the University of California, Berkeley, led a group of well-established solar scientists and educators, including renowned solar eclipse expert Dr. Jay Pasachoff, in proposing the idea of the Eclipse Megamovie Project (<a href='http://www.eclipse2017.org/2017/photo/eclipse%20megamovie.pdf' target='_blank'>Hudson et al. 2011</a>). From this beginning, the basic idea of the project has always been “to incorporate as many images as possible [of the 2017 total solar eclipse], provided by a diverse range of observers using standard photographic techniques, into an overview movie.” The idea of the Megamovie has now been discussed by many other members of the astronomy community; out of these discussions the current team was formed."
+          }
+        },
+      }
+    });
+  </script>
+</dom-module>

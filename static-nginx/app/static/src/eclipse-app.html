@@ -1,0 +1,358 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/google-signin/google-signin.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tab.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="behaviors/eclipse-debug-logger.html">
+<link rel="import" href="eclipse-icons.html">
+<link rel="import" href="eclipse-footer.html">
+<link rel="import" href="eclipse-user-service/eclipse-user-service.html">
+<link rel="import" href="shared-styles.html">
+<script src="client-id.js"></script>
+
+<dom-module id="eclipse-app">
+  <template>
+    <style include="shared-styles">
+      :host {
+        --app-primary-color: #212121;
+        --app-secondary-color: #fff;
+        display: block;
+      }
+
+      h1 {
+        @apply(--paper-font-title);
+        display: inline;
+        white-space: inherit;
+      }
+
+      app-toolbar {
+        height:auto;
+      }
+
+      app-header a {
+        text-decoration: none;
+
+        color: #f1f1f1;
+      }
+
+      app-header {
+        @apply(--layout-horizontal);
+        color: #fff;
+        background-color: var(--app-primary-color);
+      }
+
+      app-header paper-icon-button {
+        --paper-icon-button-ink-color: white;
+        color: white;
+      }
+
+      paper-tab a {
+        @apply(--layout-flex);
+        @apply(--layout-center);
+        @apply(--layout-center-justified);
+        @apply(--layout-vertical);
+        margin-left:8px;
+        margin-right:8px;
+      }
+
+      paper-tab.iron-selected a, paper-tab a:hover {
+        color: var(--paper-yellow-500);
+      }
+
+      .tabs-bar {
+        @apply(--content-width);
+        @apply(--layout-wrap);
+        min-width: 200px;
+        padding: 0 16px;
+      }
+
+      paper-tabs {
+        @apply(--layout-flex-auto);
+        @apply(--layout-self-stretch);
+        @apply(--paper-font-button);
+        text-align:center;
+      }
+
+      .title-holder {
+        width:100%;
+        display:flex;
+        margin-right:100px;
+      }
+
+      .title-holder[signedin] {
+        margin-right:0px;
+      }
+
+      .title {
+        @apply(--layout-center);
+        @apply(--layout-self-stretch);
+        @apply(--layout-horizontal);
+        pointer-events:auto;
+      }
+      .title img {
+        margin-right: 12px;
+      }
+
+      .profile-image {
+        border-radius: 50%;
+        height:75%;
+        max-height:50px;
+      }
+
+      #signin {
+        position:absolute;
+        right: 8px;
+        top:8px;
+      }
+
+      #pagecontent {
+        background: #303030;
+      }
+
+      @media all and (min-width:600px) {
+        #signin {
+          position:relative;
+          right: auto;
+          top: auto;
+        }
+
+        paper-tabs {
+           height:80px;
+        }
+        .tabs-bar {
+          padding: 0 32px;
+        }
+        .title-holder {
+          @apply(--layout-flex);
+          margin: 12px 0;
+        }
+
+        h1 {
+          white-space:nowrap;
+        }
+      }
+    </style>
+
+    <eclipse-user-service id="userService"
+      on-user-service-ready="_handleUserRequest"></eclipse-user-service>
+    <app-location route="{{route}}"></app-location>
+    <iron-location path="{{path}}" hash="{{hash}}" query="{{query}}"></iron-location>
+    <app-route
+        route="{{route}}"
+        pattern="/:page"
+        data="{{routeData}}"
+        tail="{{subroute}}"></app-route>
+
+    <app-drawer-layout fullbleed>
+
+      <!-- Main content -->
+      <app-header-layout>
+
+        <app-header id="header" fixed reveals effects="waterfall">
+          <app-toolbar class="tabs-bar">
+            <div class="title-holder" signedin$="{{isSignedIn}}"><a class="title" href="/" horizontal><img src="/images/logo.svg"/><h1>Eclipse Megamovie 2017</h1></a></div>
+            <paper-tabs selected="[[page]]" attr-for-selected="name" sticky scrollable$="{{!wideLayout}}">
+              <paper-tab name="overview" link><a href="/">Home</a></paper-tab>
+              <paper-tab name="about" link><a href="/about">Eclipse</a></paper-tab>
+              <paper-tab name="megamovie" link><a href="/megamovie">Megamovie</a></paper-tab>
+              <paper-tab name="safety" link><a href="/safety">Safety</a></paper-tab>
+              <paper-tab name="resources" link><a href="/resources">Resources</a></paper-tab>
+              <paper-tab name="profile" link hidden$="{{!isSignedIn}}">
+                <a href="/profile">
+                  <span class="profile-label">Profile</span>
+                  <img class="profile-image"/>
+                </a>
+              </paper-tab>
+            </paper-tabs>
+            <google-signin
+                id="signin"
+                scopes="profile"
+                raised="true"
+                on-google-signin-success="onSignIn"
+                on-google-signed-out="onSignOut"
+                hidden$="{{isSignedIn}}"
+                on-tap="_handleSigninClick"
+                ></google-signin>
+          </app-toolbar>
+        </app-header>
+
+        <iron-pages
+            id="pagecontent"
+            selected="[[page]]"
+            attr-for-selected="id"
+            fallback-selection="view404"
+            role="main">
+          <eclipse-overview id="overview" headerColor="#212121"></eclipse-overview>
+          <eclipse-about id="about" headerColor="#212121"></eclipse-about>
+          <eclipse-megamovie id="megamovie" headerColor="#4481f8"></eclipse-megamovie>
+          <eclipse-safety id="safety" headerColor="#212121"></eclipse-safety>
+          <eclipse-resources id="resources" headerColor="#0f9d58"></eclipse-resources>
+          <eclipse-profile id="profile" headerColor="#212121"></eclipse-profile>
+          <eclipse-view404 id="view404"></eclipse-view404>
+          <eclipse-admin id="admin"></eclipse-admin>
+        </iron-pages>
+
+        <eclipse-footer></eclipse-footer>
+      </app-header-layout>
+    </app-drawer-layout>
+
+    <iron-media-query query="min-width: 600px" query-matches="{{wideLayout}}"></iron-media-query>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-app',
+      behaviors: [EclipseBehaviors.DebugLoggerBehavior],
+
+      properties: {
+        page: {
+          type: String,
+          reflectToAttribute: true,
+          observer: '_pageChanged'
+        },
+        hash: {
+          type: String,
+          reflectToAttribute: true,
+          observer: 'scrollToAnchor'
+        },
+        wideLayout: {
+          type: Boolean,
+          value: false,
+          observer: '_onLayoutChange',
+        },
+        isSignedIn: {
+          type: Boolean,
+          value: false,
+          reflectToAttribute: true,
+          notify: true
+        }
+      },
+
+      observers: [
+        '_routePageChanged(routeData.page)',
+        '_onLayoutChange(wideLayout)'
+      ],
+
+      _routePageChanged: function(page) {
+        this.page = page || 'overview';
+      },
+
+      _pageChanged: function(page) {
+        // Load page import on demand. Show 404 page if fails
+        var resolvedPageUrl = this.resolveUrl('eclipse-' + page + '.html');
+        this.importHref(resolvedPageUrl, null, this._showPage404, true);
+
+        var ironPage = this.$$('#' + page);
+        var headerColor = "#212121";
+        if (ironPage) {
+          headerColor = ironPage.getAttribute("headerColor");
+        }
+        this.$.header.style.backgroundColor = headerColor;
+        Polymer.updateStyles();
+
+        document.body.scrollTop = 0;
+
+        // Log the page hit.
+        if (window.ga) {
+          window.ga('set', 'page', '/' + page);
+          window.ga('send', 'pageview');
+        }
+      },
+
+      _showPage404: function() {
+        this.page = 'view404';
+      },
+
+      _onLayoutChange: function(wide) {
+        this.$.header.fixed = wide;
+      },
+
+      ready: function() {
+        var signin = this.$$("#signin");
+        signin.setAttribute("client-id", client_id);
+        this.$.profile.userService = this.$.userService;
+      },
+
+      scrollToAnchor: function(hash) {
+        if (hash && hash.length > 1) {
+          var ironPage = this.$$('#' + this.page);
+          if (ironPage) {
+            ironPage.hash = hash;
+          }
+        }
+      },
+
+      onSignIn: function() {
+        var user = gapi.auth2.getAuthInstance()['currentUser'].get();
+        if (user) {
+          this.isSignedIn = true;
+          var imageUrl = user.getBasicProfile().getImageUrl();
+          if (imageUrl) {
+            this.$$(".profile-image").src = user.getBasicProfile().getImageUrl();
+            this.$$(".profile-image").removeAttribute("hidden");
+            this.$$(".profile-label").setAttribute("hidden", "hidden");
+          } else {
+            this.$$(".profile-image").setAttribute("hidden", "hidden");
+            this.$$(".profile-label").removeAttribute("hidden");
+          }
+          if (this.page == 'profile') {
+            // TODO: need to make the yellow bar show up again.
+          }
+        }
+        this.$$("paper-tabs").notifyResize();
+        Polymer.updateStyles();
+      },
+      onSignOut: function() {
+        this.isSignedIn = false;
+        if (this.page == 'profile') {
+          this.path = "/";
+        }
+        this.$$("paper-tabs").notifyResize();
+        Polymer.updateStyles();
+      },
+      _handleSigninClick: function() {
+        this.signinClick = true;
+      },
+      _handleUserRequest: function() {
+        if (!this.$.userService.exists && this.isSignedIn && this.signinClick) {
+          this.consoleLogIfAble("User doesn't exist yet and click happened");
+          this.signinClick = false;
+          // redirect to the profile page if not on the 404 page.
+          if (this.page != 'view404') {
+            this.path = "/profile";
+          }
+        }
+      }
+    });
+  </script>
+</dom-module>

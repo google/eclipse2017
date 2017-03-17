@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Copyright 2017 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+failed=0
+pushd common_tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
+pushd profile/app/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
+pushd admin/app/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
+if [ "$UNRELEASED" == "true" ]; then
+  pushd upload/daemon/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
+  pushd upload/server/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
+  pushd movie/daemon/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
+fi
+exit $failed

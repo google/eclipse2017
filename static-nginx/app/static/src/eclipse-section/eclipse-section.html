@@ -1,0 +1,114 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+
+<dom-module id="eclipse-section">
+    <template>
+        <style include="shared-styles">
+          :host {
+            @apply(--layout-horizontal);
+          }
+
+          .large {
+            min-height: calc(100vh - 75px - 30px);
+          }
+
+          .medium {
+            min-height: 65vh;
+          }
+
+          .small {
+            min-height: 30vh;
+          }
+
+          .content-wrapper {
+             @apply(--layout-center);
+             @apply(--layout-flex);
+             @apply(--layout-flex-auto);
+             @apply(--layout-horizontal);
+             @apply(--content-width);
+             padding: 32px;
+             position:relative;
+          }
+
+          .content-wrapper ::content img {
+            max-width:100%;
+          }
+
+          .start {
+            @apply(--layout-start-justified);
+          }
+
+          .end {
+            @apply(--layout-end-justified)
+          }
+
+          .center {
+            @apply(--layout-center-justified);
+          }
+
+          ::content {
+            @apply(--layout-flex);
+          }
+
+          @media all and (min-width:600px) {
+            .content-wrapper ::content > img {
+              max-width:calc(100% - 500px);
+            }
+          }
+
+          @media all and (max-width:600px) {
+            .content-wrapper {
+              @apply(--layout-wrap);
+            }
+          }
+
+          .background-holder {
+            width:100%;
+            background-size: cover;
+            background-position: center;
+            @apply(--layout-center);
+          }
+        </style>
+        <div class="background-holder" style$="background-image: url('{{bg}}'); background-color: {{color}}">
+            <div class$="{{size}} content-wrapper {{alignment}}" style$='flex-direction: {{layout}};)' >
+              <content></content>
+            </div>
+        </div>
+
+    </template>
+    <script>
+      Polymer({
+        is: 'eclipse-section',
+
+        properties: {
+          showNavbarMin: {
+          type: String,
+          value: "900px"
+        },
+        layout: {
+          type: String,
+          value: "row"
+        },
+        alignment: {
+          type: String,
+          value: "center"
+        }
+        }
+      });
+    </script>
+</dom-module>

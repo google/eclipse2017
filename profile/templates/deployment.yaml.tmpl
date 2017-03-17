@@ -1,0 +1,57 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: profile
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: profile-backend
+    matchExpressions:
+      - {key: tier, operator: In, values: [profile-backend]}
+  template:
+    metadata:
+      labels:
+        app: profile
+        tier: profile-backend
+    spec:
+      containers:
+        - name: profile-server
+          image: {{GCR_PREFIX}}/profile-server
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          # TODO(dek): health probe
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 1000M
+              requests:
+                  cpu: 1000m
+                  memory: 1000M
+        - name: profile-nginx
+          image: {{GCR_PREFIX}}/profile-nginx
+          ports:
+            - containerPort: 80
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          resources:
+              limits:
+                  cpu: 500m
+                  memory: 1000M
+              requests:
+                  cpu: 500m
+                  memory: 1000M

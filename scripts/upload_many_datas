@@ -1,0 +1,26 @@
+DIR="/tmp/upload_data"
+NUM_UPLOADS=50
+IP="130.211.11.238"
+
+if ! test -d $DIR; then
+    echo "Saving files to $DIR. These will persist once script finishes."
+
+    mkdir -p $DIR
+    python -c "a = ['a' for _ in range(25*1024*1024)]; open('$DIR/data25.txt', 'w').write(''.join(a))"
+
+    I=0
+    while [ $I -lt $NUM_UPLOADS ]; do
+        FILE="data25-$I.txt"
+        cp $DIR/data25.txt $DIR/$FILE
+        I=$[ $I + 1 ]
+    done
+
+    rm -f $DIR/data25.txt
+fi
+
+I=0
+while [ $I -lt $NUM_UPLOADS ]; do
+    FILE="data25-$I.txt"
+    curl -d @$DIR/$FILE -H "X-Filename:$FILE" -H "Content-type:text/plain" -H "Expect:" -vv $IP/services/upload/ &
+    I=$[ $I + 1 ]
+done

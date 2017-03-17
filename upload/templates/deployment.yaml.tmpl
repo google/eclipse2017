@@ -1,0 +1,77 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: upload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: upload-backend
+    matchExpressions:
+      - {key: tier, operator: In, values: [upload-backend]}
+  template:
+    metadata:
+      labels:
+        app: upload
+        tier: upload-backend
+    spec:
+      volumes:
+        - name: upload-volume
+          emptyDir:
+              medium: ""
+      containers:
+        - name: upload-server
+          image: {{GCR_PREFIX}}/upload-server
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+              httpGet:
+                  path: /services/upload/healthz
+                  port: 8080
+              timeoutSeconds: 60
+          readinessProbe:
+              httpGet:
+                  path: /services/upload/ready
+                  port: 8080
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 11000M
+              requests:
+                  cpu: 1000m
+                  memory: 11000M
+          volumeMounts:
+            - name: upload-volume
+              mountPath: /pending-uploads
+        - name: upload-nginx
+          image: {{GCR_PREFIX}}/upload-nginx
+          ports:
+            - containerPort: 80
+          livenessProbe:
+              httpGet:
+                   path: /services/upload/healthz
+                   port: 80
+              timeoutSeconds: 60
+          readinessProbe:
+             httpGet:
+                  path: /services/upload/ready
+                  port: 80
+          resources:
+              limits:
+                  cpu: 500m
+                  memory: 1000M
+              requests:
+                  cpu: 500m
+                  memory: 1000M
+        - name: upload-daemon
+          image: {{GCR_PREFIX}}/upload-daemon
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 2000M
+              requests:
+                  cpu: 1000m
+                  memory: 2000M
+          volumeMounts:
+            - name: upload-volume
+              mountPath: /pending-uploads

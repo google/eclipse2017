@@ -1,0 +1,116 @@
+#
+# Copyright 2016 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#!/usr/bin/env python
+
+import unittest2
+import uuid
+
+from gcloud import datastore, storage
+
+from common.config import PROJECT_ID
+from common import datastore_schema as ds
+from common import constants
+
+from app import pipeline
+from app import pipeline_stats
+
+import numpy as np
+from sklearn.datasets.samples_generator import make_blobs
+from multiprocessing import Pool
+
+class PipelineStatsTests(unittest2.TestCase):
+    """
+    Tests for the Pipeline_Stats class.
+    """
+
+    def setUp(self):
+        #Get current datastore client (emulator) & GCS client
+        self.datastore_client = datastore.Client(PROJECT_ID)
+        self.storage_client = storage.client.Client(PROJECT_ID)
+
+        # Create new instance of movie pipeline classes using out clients
+        self.pipeline_stats = pipeline_stats.Pipeline_Stats(self.datastore_client, self.storage_client)
+        self.movie_pipeline = pipeline.Pipeline(self.datastore_client, self.storage_client)
+
+        # Mock constants
+        ds.DATASTORE_PHOTO = "TestObj"
+        ds.DATASTORE_ORIENTED_IMAGE = "TestObj2"
+        constants.MIN_PHOTOS_IN_CLUSTER = 3
+        constants.CLUSTER_RADIUS_DEGREES = 3
+
+        # Generate fake coordinates
+        self.centers = [(44.5646, -123.2620), (34.0007, -81.0348), (36.1627, -86.7816)]
+        self.coordinates, self.labels = self._mock_cluster_data(self.centers, 10)
+
+    def tearDown(self):
+        # Delete any test entities in datastore emulator
+        query = self.datastore_client.query(kind=ds.DATASTORE_PHOTO)
+        self.datastore_client.delete_multi(list(entity.key for entity in list(query.fetch())))
+
+        query = self.datastore_client.query(kind=ds.DATASTORE_ORIENTED_IMAGE)
+        self.datastore_client.delete_multi(list(entity.key for entity in list(query.fetch())))
+
+
+    # Testing getting lat/lng fields from datastore
+    def test_get_gps_coordinates(self):
+        #  Put photo entites to datastore with name "<x> and lat & lng fields"
+        fnames = []
+        expected = []
+
+        for x in xrange(1, 11):
+            self._put(ds.DATASTORE_PHOTO, x, [('lat', x), ('lon', x+1)])
+            fnames.append(str(x))
+            expected.append((x, x+1))
+
+        coordinates = self.pipeline_stats._get_gps_coordinates(fnames)
+        self.assertEqual(coordinates, expected)
+
+    def test_get_cluster_labels(self):
+        n_clusters, labels = self.pipeline_stats._get_cluster_labels(self.coordinates)
+
+        self.assertEqual(n_clusters, len(self.centers))
+
+    def test_get_clusters(self):
+
+        photo_data = [("a", [1,1]),("d", [101,101]),("g", [201,201]),
+                      ("b", [2,2]),("e", [102,102]),("h", [202,202]),
+                      ("c", [3,3]),("f", [103,103]),("i", [203,203]),("x", [900,900]),]
+
+        fnames, coordinates = zip(*photo_data)
+        clusters = self.pipeline_stats._get_clusters(fnames, coordinates)
+
+        self.assertEqual(clusters, [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']])
+
+    def test_print_map(self):
+        n_clusters, labels = self.pipeline_stats._get_cluster_labels(self.coordinates)
+
+        self.pipeline_stats._print_map(self.coordinates, labels, n_clusters)
+
+    def _mock_cluster_data(self, centers, n_samples, cols=None):
+        # Generate mock GPS data with clusters around random GPS coordinates within , returns
+        # data and correct cluster labels
+        return make_blobs(centers=centers,
+                          n_samples=n_samples,
+                          cluster_std=0.5)
+
+    def _put(self, kind, name, properties):
+        key = self.datastore_client.key(kind, str(name))
+        entity = datastore.Entity(key)
+
+        for (property_name, property_value) in properties:
+            entity[property_name] = property_value
+
+        self.datastore_client.put(entity)

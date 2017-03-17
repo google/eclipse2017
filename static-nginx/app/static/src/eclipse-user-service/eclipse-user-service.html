@@ -1,0 +1,204 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../behaviors/eclipse-debug-logger.html">
+<script type="text/javascript" src="../../bower_components/js-sha256/src/sha256.js"></script>
+
+<dom-module id="eclipse-user-service">
+  <template>
+    <style>
+          :host {
+            display:none;
+          }
+        </style>
+    <google-signin-aware id="signin"
+      scopes="profile"
+      on-google-signin-aware-success="_handleSignin"
+      on-google-signin-aware-signed-out="_handleSignout"
+      >
+
+    </google-signin-aware>
+    <iron-ajax
+        id="profileRequest"
+        auto
+        params='{}'
+        handle-as="json"
+        on-response="_handleResponse"
+        on-error="_handleError"
+        debounce-duration="300"></iron-ajax>
+    <iron-ajax
+        id="profileEdit"
+        params='{}'
+        handle-as="json"
+        on-response="_handleEditResponse"
+        on-error="_handleEditError"
+        debounce-duration="300"></iron-ajax>
+  </template>
+  <script>
+      Polymer({
+        is: 'eclipse-user-service',
+        behaviors: [EclipseBehaviors.DebugLoggerBehavior],
+
+        properties: {
+          user : {
+            type: Object,
+            notify: true,
+            observer: '_onUserChanged'
+          },
+
+          exists: {
+            type: Boolean,
+            readOnly: true
+          },
+
+          userId : {
+            type: String,
+            readOnly: true
+          },
+
+          name : {
+            type: String,
+            readOnly: true,
+            notify:true
+          },
+
+          email : {
+            type: String,
+            readOnly: true,
+            notify:true
+          },
+
+          location : {
+            type: String,
+            readOnly: true,
+            notify:true
+          },
+
+          camera : {
+            type: String,
+            readOnly: true
+          }
+        },
+
+        observers: [
+          '_onUserChanged(user)',
+        ],
+
+        createUser: function(profile) {
+          this._createOrEditUser("PUT", this._getUserUrl(), profile);
+        },
+
+        updateUser: function(profile) {
+          this._createOrEditUser("UPDATE", this._getUserUrl(), profile);
+        },
+
+        deleteUser: function() {
+          if (this.user) {
+            this.user.disconnect();
+          }
+          this._createOrEditUser("DELETE", this._getUserUrl(), {});
+          this.$.signin.signOut();
+        },
+
+        _handleSignin: function() {
+          this.consoleLogIfAble("signing in");
+          this.user = gapi.auth2.getAuthInstance()['currentUser'].get();
+        },
+
+        _handleSignout: function() {
+          this.consoleLogIfAble("signing out");
+          this.user = null;
+          this._setExists(false);
+          this._setName(null);
+          this._setEmail(null);
+          this._setLocation(null);
+          this._setLocation(null);
+          this._setCamera(null);
+          this.fire('user-service-ready', {});
+        },
+
+        _onUserChanged: function(user) {
+          if (user) {
+            var profile = user.getBasicProfile();
+            this._setUserId(sha256(profile.getId()));
+            this.$.profileRequest.headers["X-IDTOKEN"] = user.getAuthResponse().id_token;
+            this.$.profileRequest.url = this._getUserUrl();
+          } else {
+            this._setUserId(null);
+            this.$.profileRequest.headers["X-IDTOKEN"] = null;
+            this.$.profileRequest.url = null;
+          }
+        },
+
+        _getUserUrl: function() {
+          var url = "/services/user/profile/" + this.userId;
+          if (this.LOCAL_DEBUG) {
+            url = "https://localhost" + url;
+          }
+          return url;
+        },
+
+        _createOrEditUser: function(method, url, profile) {
+          this.consoleLogIfAble("Putting " + url);
+          var profileEdit = this.$.profileEdit;
+          profileEdit.url = url;
+          profileEdit.method = method;
+          profileEdit.body = profile;
+          var idToken = this.user.getAuthResponse().id_token;
+          profileEdit.headers = {"Content-Type" : "application/json",
+                                 "X-IDTOKEN" : idToken,
+          };
+          profileEdit.generateRequest();
+        },
+
+        _handleResponse: function(response) {
+          this.consoleLogIfAble("Got response " + response.detail.status);
+          if (response.detail.response) {
+            this._setName(response.detail.response.name);
+            this._setEmail(response.detail.response.email);
+            this._setLocation(response.detail.response.location);
+            this._setCamera(response.detail.response.camera);
+            this._setExists(true);
+          }
+          this.fire('user-service-ready', {});
+        },
+
+        _handleError: function(response) {
+          this.consoleLogIfAble("Got error response " + response.detail.request);
+          if (response.detail.request && response.detail.request.status == 404) {
+            // User doesn't exist yet.
+            this._setExists(false);
+            // Fill in basic info from the profile.
+            var profile = this.user.getBasicProfile();
+            this._setName(profile.getName());
+            this._setEmail(profile.getEmail());
+          }
+          this.fire('user-service-ready', {});
+        },
+
+        _handleEditResponse: function(response) {
+          if (response.target.method == "PUT" || response.target.method == "UPDATE") {
+            // Reload with the new data.
+            this.$.profileRequest.generateRequest();
+          }
+        },
+
+        _handleEditError: function(response) {
+        },
+      });
+    </script>
+</dom-module>

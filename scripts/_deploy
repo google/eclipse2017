@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# Copyright 2016 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -e
+echo "Deploying..."
+
+if [ "$LOCAL_DEV" != "true" ]; then
+  if [[ -z $APP || $APP == profile-server || $APP == profile-nginx ]]; then
+    kubectl apply -f build/profile/deployment.yaml --record
+    kubectl expose deployment profile --selector="app=profile" --port=80 --target-port=80 --type=NodePort
+  fi
+
+    if [[ -z $APP || $APP == admin-server || $APP == admin-nginx ]]; then
+      kubectl apply -f build/admin/deployment.yaml --record
+      kubectl expose deployment admin --selector="app=admin" --target-port=80 --type=NodePort
+    fi
+
+  if [ "$DEPLOY_UNRELEASED" == "true" ]; then
+    if [[ -z $APP || $APP == upload-server || $APP == upload-nginx || $APP == upload-daemon ]]; then
+      kubectl apply -f build/upload/deployment.yaml --record
+      kubectl expose deployment upload --selector="app=upload" --target-port=80 --type=NodePort
+    fi
+
+    if [[ -z $APP || $APP == movie-daemon || $APP == upload-nginx || $APP == upload-daemon ]]; then
+      kubectl apply -f build/movie/deployment.yaml --record
+    fi
+  fi
+
+  if [[ -z $APP || $APP == static-nginx ]]; then
+    kubectl apply -f build/static-nginx/deployment.yaml --record
+    kubectl expose deployment static-nginx --selector="app=static-nginx" --port=80 --target-port=80 --type=NodePort
+  fi
+else
+
+  [ ! -d pending-uploads ] && mkdir pending-uploads
+  chmod ugo+rwx pending-uploads
+
+  GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
+
+  if [[ -z $APP || $APP == datastore-emulator ]]; then
+    docker run -tid --name datastore-emulator -p 8999:8999 ${GCR_PREFIX}/datastore-emulator
+
+    # Wait for datastore-emulator to start in container
+    DATASTORE_EMULATOR_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' datastore-emulator)
+
+    for i in $(seq 10); do
+      if $(nc -z $DATASTORE_EMULATOR_IP 8999); then
+         break
+      fi ;
+      sleep 1s;
+    done
+  fi
+  DATASTORE_EMULATOR_HOST_PORT=8999
+  DATASTORE_HOST="http://datastore-emulator:${DATASTORE_EMULATOR_HOST_PORT}"
+
+  LINK="--link profile-nginx --link admin-nginx --link static-nginx"
+  [[ -z $APP || $APP == profile-server ]] && docker run -e DATASTORE_HOST="$DATASTORE_HOST" -tid --name profile-server --link datastore-emulator ${GCR_PREFIX}/profile-server
+  [[ -z $APP || $APP == profile-nginx ]] && docker run -tid --name profile-nginx --link profile-server ${GCR_PREFIX}/profile-nginx
+  [[ -z $APP || $APP == admin-server ]] && docker run -e DATASTORE_HOST="$DATASTORE_HOST" -tid --name admin-server --link datastore-emulator ${GCR_PREFIX}/admin-server
+  [[ -z $APP || $APP == admin-nginx ]] && docker run -tid --name admin-nginx --link admin-server ${GCR_PREFIX}/admin-nginx
+  if [ "$DEPLOY_UNRELEASED" == "true" ]; then
+    [[ -z $APP || $APP == upload-server ]] && docker run -e DATASTORE_HOST="$DATASTORE_HOST" -tid --name upload-server -v $(pwd)/pending-uploads:/pending-uploads --link datastore-emulator ${GCR_PREFIX}/upload-server
+    LINK=" --link upload-nginx"
+    [[ -z $APP || $APP == upload-nginx ]] && docker run -tid --name upload-nginx --link upload-server ${GCR_PREFIX}/upload-nginx
+    [[ -z $APP || $APP == upload-daemon ]] && docker run -e DATASTORE_HOST="$DATASTORE_HOST" -tid --name upload-daemon -v $(pwd)/pending-uploads:/pending-uploads --link datastore-emulator ${GCR_PREFIX}/upload-daemon
+    [[ -z $APP || $APP == movie-daemon ]] && docker run  -e DATASTORE_HOST="$DATASTORE_HOST" -tid --name movie-daemon --link datastore-emulator ${GCR_PREFIX}/movie-daemon
+    [[ -z $APP || $APP == image-processor-daemon ]] && docker run  -e DATASTORE_HOST="$DATASTORE_HOST" -tid --name image-processor-daemon --link datastore-emulator ${GCR_PREFIX}/image-processor-daemon
+  fi
+  if [[ -z $APP || $APP == static-nginx ]]; then
+    docker run -tid --name static-nginx ${GCR_PREFIX}/static-nginx
+  fi
+  [[ -z $APP || $APP == nginx-lb-emulator ]] && docker run -tid --name nginx-lb-emulator ${LINK} -p 80:80 -p 443:443 ${GCR_PREFIX}/nginx-lb-emulator
+fi
+
+echo "Done deploying."

@@ -1,0 +1,22 @@
+{
+  "name": "eclipse-megamovie",
+  "version": "0.0.1",
+  "description": "Eclipse Megamovie site",
+  "license": "http://polymer.github.io/LICENSE.txt",
+  "scripts": {
+    "build": "gulp"
+  },
+  "devDependencies": {
+    "del": "^2.2.1",
+    "gulp": "gulpjs/gulp#4.0",
+    "gulp-if": "^2.0.1",
+    "gulp-imagemin": "^3.0.1",
+    "merge-stream": "^1.0.0",
+    "plylog": "^0.4.0",
+    "polymer-build": "^0.4.0"
+  },
+  "engines": {
+    "node": ">=4.0"
+  },
+  "private": true
+}

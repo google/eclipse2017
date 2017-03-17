@@ -1,0 +1,180 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-resources">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: flex;
+      }
+
+      .sections {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-flex);
+        background: #0f9d58;
+        padding-top:24px;
+        min-height:calc(100vh - 180px);
+      }
+
+      h1 {
+        @apply(--layout-center);
+        @apply(--paper-font-headline);
+        text-align:center;
+        padding-left: 24px;
+        padding-right:24px;
+      }
+
+      span.title {
+        @apply(--paper-font-subhead);
+        display:block;
+        text-align:center;
+        color: var(--paper-blue-500);
+        margin-bottom: 16px;
+      }
+
+      .section {
+        margin-bottom:48px;
+      }
+
+      .cards {
+        @apply(--layout-vertical);
+      }
+
+      .cards a {
+        @apply(--layout-horizontal);
+      }
+
+      @media all and (min-width:600px) {
+        .cards {
+          @apply(--layout-horizontal);
+          @apply(--layout-stretch);
+        }
+      }
+
+      @media all and (max-width:600px) {
+        .cards {
+          @apply(--layout-center);
+        }
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      paper-card:hover {
+        @apply(--shadow-elevation-16dp);
+        position:relative;
+        top: -2px;
+      }
+      paper-card {
+        @apply(--card);
+      }
+      paper-card .image-holder {
+        @apply(--layout-vertical);
+        @apply(--layout-center-justified);
+        height:100px;
+      }
+      paper-card .image-holder img {
+        max-height:100px;
+      }
+      paper-card .text {
+        @apply(--paper-font-body1);
+      }
+
+    </style>
+
+    <div class="sections">
+      <template is="dom-repeat" items="[[sections]]">
+        <div class="section">
+          <h1>[[item.title]]</h1>
+          <div class="cards">
+            <template is="dom-repeat" items="[[item.cards]]">
+              <a href="[[item.url]]" target="_blank">
+                <paper-card elevation="2">
+                  <span class="title">[[item.title]]</span>
+                  <div class="text">[[item.text]]</div>
+                </paper-card>
+              </a>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-resources',
+
+      ready: function() {
+        this.sections = [
+            {
+              "title": "Eclipse Activities for Educators",
+              "cards": [{
+                "title": "NASA Eclipse 2017",
+                "text": "NASA invites you to experience the 2017 solar eclipse in many fun, creative, and challenging ways from family-friendly activities to sophisticated science projects",
+                "url": "http://eclipse2017.nasa.gov/activities"
+              }, {
+                "title": "NSTA’s Solar Science",
+                "text": "Sample activities from the National Science Teachers Association book Solar Science",
+                "url": "http://www.nsta.org/docs/BookBeat201601SunMoonEarthTogether.pdf"
+              }, {
+                "title": "Why Do Eclipses Happen?",
+                "text": "Activities about the mechanics of eclipses from the Night Sky Network for amateur astronomy clubs",
+                "url": "https://nightsky.jpl.nasa.gov/download-view.cfm?Doc_ID=327"
+              }]
+            },
+
+            {
+              "title": "Websites and Online Guides about the 2017 Eclipse",
+              "cards": [{
+                "title": "An Observer’s Guide to Viewing the Eclipse",
+                "text": "A free downloadable introductory guide for beginners to the 2017 total solar eclipse by Andrew Fraknoi and Dennis Schatz (from the book Solar Science from the National Science Teachers Association)",
+                "url": "http://www.nsta.org/publications/press/extras/files/solarscience/SolarScienceInsert.pdf"
+              }, {
+                "title": "Total Solar Eclipse 2017",
+                "text": "This guide from Space.com is brief but includes the most important details for the 2017 eclipse",
+                "url": "http://www.space.com/33797-total-solar-eclipse-2017-guide.html"
+              }, {
+                "title": "Eclipse 2017",
+                "text": "This very informative site by eclipse enthusiast Dan McGlaun includes some wonderful explanatory animations provided by Ernie Wright of NASA.",
+                "url": "http://www.eclipse2017.org"
+              }]
+            },
+
+            {
+              "title": "Interactive Maps for the 2017 Eclipse",
+              "cards": [{
+                "title": "NASA's GSFC Eclipse Map",
+                "text": "This interactive Google Map from Fred Espenak at NASA's Goddard Space Flight Center shows the path of the 2017 total solar eclipse, and brings up key  details such as start and end times and duration of totality for any location selected",
+                "url": "http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html"
+              }, {
+                "title": "2017 Total Eclipse",
+                "text": "This interactive Google Map from Xavier Jubier has key eclipse details for any location desired",
+                "url": "http://www.eclipse2017.org/xavier_redirect.htm"
+              }]
+            }
+          ]
+      }
+    });
+  </script>
+</dom-module>

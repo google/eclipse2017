@@ -1,0 +1,367 @@
+#!/bin/bash
+#
+# Copyright 2016 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -e
+echo "Building..."
+
+BUILD_DIR=$PROJ_DIR/build
+mkdir -p $BUILD_DIR
+
+# Gcloud values
+GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
+SED_SAFE_GCR_PREFIX=$(echo $GCR_PREFIX | sed -e 's:\/:\\\/:g')
+
+# # # Select correct service account and secret_keys files for our selected environment
+cp -a $PROJ_DIR/common $BUILD_DIR
+cp -a $PROJ_DIR/common_tests $BUILD_DIR
+mkdir -p $BUILD_DIR/common/flask
+cp $PROJ_DIR/conf/service_account_$TARGET_ENV.json $BUILD_DIR/common/service_account.json
+SECRET_KEYS_SRC=$PROJ_DIR/conf/secret_keys_$TARGET_ENV.py
+cp $SECRET_KEYS_SRC $BUILD_DIR/common/secret_keys.py
+
+# # Process config.py file and save temporarily. Will delete this file when
+# # build is complete
+# if [ "$LOCAL_DEV" != "true" ]; then
+#   if [ "$TARGET_ENV" == "prod" ]; then
+#     CDN_HOSTNAME=https://prod.eclipsemega.movie/static
+#   else
+#     CDN_HOSTNAME=https://static_${TARGET_ENV}.eclipsemega.movie/static
+#   fi
+# else
+#   CDN_HOSTNAME=https://localhost/static
+# fi
+mkdir -p $BUILD_DIR/templates
+sed -e "s:{{GCLOUD_PROJ}}:$GCLOUD_PROJ:g" \
+    -e "s:{{PROJECT_ID}}:$SED_SAFE_PROJECT_ID:g" \
+    -e "s:{{UPLOAD_SERVER_RSS_MAX_USAGE_BYTES}}:$UPLOAD_SERVER_RSS_MAX_USAGE_BYTES:g" \
+    -e "s:{{PENDING_UPLOADS_MAX_USAGE_BYTES}}:$PENDING_UPLOADS_MAX_USAGE_BYTES:g" \
+    -e "s!{{CDN_HOSTNAME}}!$CDN_HOSTNAME!g" \
+    $PROJ_DIR/templates/config.py.tmpl > $BUILD_DIR/common/config.py
+
+if [[ -z $APP || $APP == base-container ]]; then
+  # Build base container
+  BASE_CONTAINER_TAG=$GCR_PREFIX/base-container
+  docker build -t $BASE_CONTAINER_TAG:latest -t $BASE_CONTAINER_TAG:$GIT_TAG base-container
+fi
+
+if [[ -z $APP || $APP == app-container ]]; then
+  # Build app container
+  APP_CONTAINER_DIR=$PROJ_DIR/app-container
+  APP_CONTAINER_BUILD_DIR=$BUILD_DIR/app-container
+  mkdir -p $APP_CONTAINER_BUILD_DIR/conf
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $APP_CONTAINER_DIR/templates/Dockerfile.tmpl > $APP_CONTAINER_BUILD_DIR/Dockerfile
+  APP_CONTAINER_TAG=$GCR_PREFIX/app-container
+  cp $APP_CONTAINER_DIR/conf/requirements.txt $APP_CONTAINER_BUILD_DIR/conf/requirements.txt
+  docker build  -t $APP_CONTAINER_TAG:latest -t $APP_CONTAINER_TAG:$GIT_TAG $APP_CONTAINER_BUILD_DIR
+fi
+
+if [[ -z $APP || $APP == nginx-container ]]; then
+  # Build nginx container
+  NGINX_CONTAINER_DIR=$PROJ_DIR/nginx-container
+  NGINX_CONTAINER_BUILD_DIR=$BUILD_DIR/nginx-container
+  mkdir -p $NGINX_CONTAINER_BUILD_DIR
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $NGINX_CONTAINER_DIR/templates/Dockerfile.tmpl > $NGINX_CONTAINER_BUILD_DIR/Dockerfile
+  NGINX_CONTAINER_TAG=$GCR_PREFIX/nginx-container
+  docker build  -t $NGINX_CONTAINER_TAG:latest -t $NGINX_CONTAINER_TAG:$GIT_TAG $NGINX_CONTAINER_BUILD_DIR
+fi
+
+if [[ -z $APP || $APP == static-nginx ]]; then
+  # Build static nginx container
+  STATIC_NGINX_CONTAINER_DIR=$PROJ_DIR/static-nginx
+  STATIC_NGINX_CONTAINER_BUILD_DIR=$BUILD_DIR/static-nginx
+  mkdir -p $STATIC_NGINX_CONTAINER_BUILD_DIR
+  cp -a $STATIC_NGINX_CONTAINER_DIR/app $STATIC_NGINX_CONTAINER_BUILD_DIR
+  cp -a $STATIC_NGINX_CONTAINER_DIR/conf $STATIC_NGINX_CONTAINER_BUILD_DIR
+  sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $STATIC_NGINX_CONTAINER_DIR/templates/deployment.yaml.tmpl > $STATIC_NGINX_CONTAINER_BUILD_DIR/deployment.yaml
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $STATIC_NGINX_CONTAINER_DIR/templates/Dockerfile.tmpl > $STATIC_NGINX_CONTAINER_BUILD_DIR/Dockerfile
+
+  STATIC_NGINX_CONTAINER_TAG=$GCR_PREFIX/static-nginx
+
+  # Create file with environment-specific client-id
+  CLIENT_ID=$(grep ^GOOGLE_OAUTH2_CLIENT_ID= $SECRET_KEYS_SRC | cut -f2 -d'=')
+  API_KEY=$(grep ^GOOGLE_HTTP_API_KEY= $SECRET_KEYS_SRC | cut -f2 -d'=')
+  for i in . build/bundled build/unbundled; do
+    mkdir -p $STATIC_NGINX_CONTAINER_BUILD_DIR/app/static/$i/src
+    echo -e "var client_id = $CLIENT_ID;\nvar api_key = $API_KEY;" > $STATIC_NGINX_CONTAINER_BUILD_DIR/app/static/$i/src/client-id.js
+  done
+
+  # Our front end uses Polymer which will need to be set up using the node package
+  # manager as follows. From the project root directory:
+  pushd $STATIC_NGINX_CONTAINER_BUILD_DIR/app/static
+  npm install --no-spin --no-progress
+  bower install
+
+  # this is a hack to work around https://github.com/Polymer/polymer-cli/pull/503
+  exec 5>&1
+  if [[ $(polymer build | tee /dev/fd/5 | perl -pe "s/\e\[?.*?[\@-~]//g" | grep -v ^info:) ]]; then
+    echo "See Above: Errors from Polymer"
+    exit 1
+  fi
+
+  popd
+
+  # Create file with git tag.
+  for i in . build/bundled build/unbundled; do
+    echo $GIT_TAG > $STATIC_NGINX_CONTAINER_BUILD_DIR/app/static/$i/hash.html
+  done
+
+  tar cvf $STATIC_NGINX_CONTAINER_BUILD_DIR/application.tar -C $STATIC_NGINX_CONTAINER_BUILD_DIR/app/static/build/bundled --owner www-data --group www-data --exclude="*.pyc" .
+
+  docker build --no-cache -t $STATIC_NGINX_CONTAINER_TAG:latest -t $STATIC_NGINX_CONTAINER_TAG:$GIT_TAG $STATIC_NGINX_CONTAINER_BUILD_DIR
+fi
+
+# The admin cloud datastore console is http://localhost:8999/_ah/admin
+DATASTORE_EMULATOR_DIR=$PROJ_DIR/datastore-emulator
+DATASTORE_EMULATOR_BUILD_DIR=$BUILD_DIR/datastore-emulator
+DATASTORE_EMULATOR_HOST_PORT=8999
+if [[ $LOCAL_DEV != true ]]; then
+  DATASTORE_EMULATOR=""
+else
+  DATASTORE_EMULATOR="ENV DATASTORE_HOST http://datastore-emulator:${DATASTORE_EMULATOR_HOST_PORT}"
+fi
+
+if [[ -z $APP || $APP == datastore-emulator ]]; then
+  mkdir -p $DATASTORE_EMULATOR_BUILD_DIR
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s:{{PROJECT_ID}}:${PROJECT_ID}:g" -e "s:{{HOST_PORT}}:${DATASTORE_EMULATOR_HOST_PORT}:g" $DATASTORE_EMULATOR_DIR/templates/Dockerfile.tmpl > $DATASTORE_EMULATOR_BUILD_DIR/Dockerfile
+
+  # Build datastore emulator on local-dev builds
+  DATASTORE_EMULATOR_TAG=$GCR_PREFIX/datastore-emulator
+  docker build  -t $DATASTORE_EMULATOR_TAG:latest -t $DATASTORE_EMULATOR_TAG:$GIT_TAG $DATASTORE_EMULATOR_BUILD_DIR
+fi
+
+# Build profile pod
+PROFILE_DIR=$PROJ_DIR/profile
+PROFILE_BUILD_DIR=$BUILD_DIR/profile
+PROFILE_APP_DIR=$PROJ_DIR/profile/app
+PROFILE_APP_BUILD_DIR=$BUILD_DIR/profile/app
+mkdir -p $PROFILE_BUILD_DIR/app
+sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $PROFILE_DIR/templates/deployment.yaml.tmpl > $PROFILE_BUILD_DIR/deployment.yaml
+
+if [[ -z $APP || $APP == profile-server ]]; then
+  # Build profile app container
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" $PROFILE_APP_DIR/templates/Dockerfile.tmpl > $PROFILE_APP_BUILD_DIR/Dockerfile
+  cp -a $PROFILE_DIR/app/app $PROFILE_APP_BUILD_DIR
+  tar cvf $PROFILE_APP_BUILD_DIR/application.tar -C $PROFILE_APP_BUILD_DIR/app --owner www-data --group www-data --exclude="*.pyc" . ../../../common
+  PROFILE_CONTAINER_TAG=$GCR_PREFIX/profile-server
+  docker build  -t $PROFILE_CONTAINER_TAG:latest -t $PROFILE_CONTAINER_TAG:$GIT_TAG $PROFILE_APP_BUILD_DIR
+fi
+
+PROFILE_NGINX_CONTAINER_DIR=$PROJ_DIR/profile/nginx
+PROFILE_NGINX_CONTAINER_BUILD_DIR=$BUILD_DIR/profile/nginx
+mkdir -p $PROFILE_NGINX_CONTAINER_BUILD_DIR
+cp -a $PROFILE_NGINX_CONTAINER_DIR/conf $PROFILE_NGINX_CONTAINER_BUILD_DIR
+if [[ -z $APP || $APP == profile-nginx ]]; then
+  # Build profile-nginx container
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $PROFILE_NGINX_CONTAINER_DIR/templates/Dockerfile.tmpl > $PROFILE_NGINX_CONTAINER_BUILD_DIR/Dockerfile
+  mkdir -p $PROFILE_NGINX_CONTAINER_BUILD_DIR
+  if [[ $LOCAL_DEV != true ]]; then
+    sed -e "s:{{PROFILE_SERVER_HOSTNAME}}:127.0.0.1:g" $PROFILE_NGINX_CONTAINER_DIR/templates/nginx.conf.tmpl > $PROFILE_NGINX_CONTAINER_BUILD_DIR/conf/nginx/nginx.conf
+  else
+    sed -e "s:{{PROFILE_SERVER_HOSTNAME}}:profile-server:g" $PROFILE_NGINX_CONTAINER_DIR/templates/nginx.conf.tmpl > $PROFILE_NGINX_CONTAINER_BUILD_DIR/conf/nginx/nginx.conf
+  fi
+
+  PROFILE_NGINX_CONTAINER_CONTAINER_TAG=$GCR_PREFIX/profile-nginx
+  docker build  -t $PROFILE_NGINX_CONTAINER_CONTAINER_TAG:latest -t $PROFILE_NGINX_CONTAINER_CONTAINER_TAG:$GIT_TAG $PROFILE_NGINX_CONTAINER_BUILD_DIR
+fi
+
+# Build admin pod
+ADMIN_DIR=$PROJ_DIR/admin
+ADMIN_BUILD_DIR=$BUILD_DIR/admin
+ADMIN_APP_DIR=$PROJ_DIR/admin/app
+ADMIN_APP_BUILD_DIR=$BUILD_DIR/admin/app
+mkdir -p $ADMIN_BUILD_DIR/app
+sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $ADMIN_DIR/templates/deployment.yaml.tmpl > $ADMIN_BUILD_DIR/deployment.yaml
+
+if [[ -z $APP || $APP == admin-server ]]; then
+  # Build admin app container
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" $ADMIN_APP_DIR/templates/Dockerfile.tmpl > $ADMIN_APP_BUILD_DIR/Dockerfile
+  cp -a $ADMIN_DIR/app/app $ADMIN_APP_BUILD_DIR
+  tar cvf $ADMIN_APP_BUILD_DIR/application.tar -C $ADMIN_APP_BUILD_DIR/app --owner www-data --group www-data --exclude="*.pyc" . ../../../common
+  ADMIN_CONTAINER_TAG=$GCR_PREFIX/admin-server
+  docker build  -t $ADMIN_CONTAINER_TAG:latest -t $ADMIN_CONTAINER_TAG:$GIT_TAG $ADMIN_APP_BUILD_DIR
+fi
+
+ADMIN_NGINX_CONTAINER_DIR=$PROJ_DIR/admin/nginx
+ADMIN_NGINX_CONTAINER_BUILD_DIR=$BUILD_DIR/admin/nginx
+mkdir -p $ADMIN_NGINX_CONTAINER_BUILD_DIR
+cp -a $ADMIN_NGINX_CONTAINER_DIR/conf $ADMIN_NGINX_CONTAINER_BUILD_DIR
+if [[ -z $APP || $APP == admin-nginx ]]; then
+  # Build admin-nginx container
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $ADMIN_NGINX_CONTAINER_DIR/templates/Dockerfile.tmpl > $ADMIN_NGINX_CONTAINER_BUILD_DIR/Dockerfile
+  mkdir -p $ADMIN_NGINX_CONTAINER_BUILD_DIR
+  if [[ $LOCAL_DEV != true ]]; then
+    sed -e "s:{{ADMIN_SERVER_HOSTNAME}}:127.0.0.1:g" $ADMIN_NGINX_CONTAINER_DIR/templates/nginx.conf.tmpl > $ADMIN_NGINX_CONTAINER_BUILD_DIR/conf/nginx/nginx.conf
+  else
+    sed -e "s:{{ADMIN_SERVER_HOSTNAME}}:admin-server:g" $ADMIN_NGINX_CONTAINER_DIR/templates/nginx.conf.tmpl > $ADMIN_NGINX_CONTAINER_BUILD_DIR/conf/nginx/nginx.conf
+  fi
+
+  ADMIN_NGINX_CONTAINER_CONTAINER_TAG=$GCR_PREFIX/admin-nginx
+  docker build  -t $ADMIN_NGINX_CONTAINER_CONTAINER_TAG:latest -t $ADMIN_NGINX_CONTAINER_CONTAINER_TAG:$GIT_TAG $ADMIN_NGINX_CONTAINER_BUILD_DIR
+fi
+if [ "$UNRELEASED" == "true" ]; then
+
+
+  # Build preprocess common upload pod files
+  UPLOAD_DIR=$PROJ_DIR/upload
+  UPLOAD_BUILD_DIR=$BUILD_DIR/upload
+  UPLOAD_APP_DIR=$PROJ_DIR/upload/server
+  UPLOAD_APP_BUILD_DIR=$BUILD_DIR/upload/server
+  mkdir -p $UPLOAD_APP_BUILD_DIR
+  sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" \
+    -e "s:{{UPLOAD_SERVER_TOTAL_MAX_USAGE_MB}}:$UPLOAD_SERVER_TOTAL_MAX_USAGE_MB:g" $UPLOAD_DIR/templates/deployment.yaml.tmpl > $UPLOAD_BUILD_DIR/deployment.yaml
+  sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $UPLOAD_DIR/templates/test_pod.yaml.tmpl | \
+    sed -e "s:{{UPLOAD_SERVER_TOTAL_MAX_USAGE_MB}}:$UPLOAD_SERVER_TOTAL_MAX_USAGE_MB:g" > $UPLOAD_BUILD_DIR/test_pod.yaml
+
+  if [[ -z $APP || $APP == upload-server ]]; then
+    # Build upload app container
+    mkdir -p $UPLOAD_BUILD_DIR/server
+    sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" $UPLOAD_APP_DIR/templates/Dockerfile.tmpl > $UPLOAD_APP_BUILD_DIR/Dockerfile
+
+    cp -a $UPLOAD_APP_DIR/app $UPLOAD_APP_BUILD_DIR
+    tar cvf $UPLOAD_APP_BUILD_DIR/application.tar -C $UPLOAD_APP_BUILD_DIR/app --owner www-data --group www-data --exclude="*.pyc" . ../../../common
+
+    UPLOAD_SERVER_CONTAINER_TAG=$GCR_PREFIX/upload-server
+    docker build  -t $UPLOAD_SERVER_CONTAINER_TAG:latest -t $UPLOAD_SERVER_CONTAINER_TAG:$GIT_TAG $UPLOAD_APP_BUILD_DIR
+  fi
+
+  UPLOAD_NGINX_CONTAINER_DIR=$PROJ_DIR/upload/nginx
+  UPLOAD_NGINX_CONTAINER_BUILD_DIR=$BUILD_DIR/upload/nginx
+  mkdir -p $UPLOAD_NGINX_CONTAINER_BUILD_DIR/conf/nginx
+  if [[ -z $APP || $APP == upload-nginx ]]; then
+    # build upload-nginx container
+    mkdir -p $UPLOAD_NGINX_CONTAINER_BUILD_DIR/upload/nginx/conf/nginx
+    sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $UPLOAD_NGINX_CONTAINER_DIR/templates/Dockerfile.tmpl > $UPLOAD_NGINX_CONTAINER_BUILD_DIR/Dockerfile
+    if [[ $LOCAL_DEV != true ]]; then
+      sed -e "s:{{UPLOAD_SERVER_HOSTNAME}}:127.0.0.1:g" $UPLOAD_NGINX_CONTAINER_DIR/templates/nginx.conf.tmpl > $UPLOAD_NGINX_CONTAINER_BUILD_DIR/conf/nginx/nginx.conf
+    else
+      sed -e "s:{{UPLOAD_SERVER_HOSTNAME}}:upload-server:g" $UPLOAD_NGINX_CONTAINER_DIR/templates/nginx.conf.tmpl > $UPLOAD_NGINX_CONTAINER_BUILD_DIR/conf/nginx/nginx.conf
+    fi
+    cp $UPLOAD_NGINX_CONTAINER_DIR/conf/nginx/mime.types $UPLOAD_NGINX_CONTAINER_BUILD_DIR/conf/nginx
+
+    UPLOAD_NGINX_CONTAINER_TAG=$GCR_PREFIX/upload-nginx
+    docker build  -t $UPLOAD_NGINX_CONTAINER_TAG:latest -t $UPLOAD_NGINX_CONTAINER_TAG:$GIT_TAG $UPLOAD_NGINX_CONTAINER_BUILD_DIR
+  fi
+
+  UPLOAD_DAEMON_CONTAINER_DIR=$PROJ_DIR/upload/daemon
+  UPLOAD_DAEMON_CONTAINER_BUILD_DIR=$BUILD_DIR/upload/daemon
+  if [[ -z $APP || $APP == upload-daemon ]]; then
+    # Build upload daemon container
+    mkdir -p $UPLOAD_DAEMON_CONTAINER_BUILD_DIR
+    cp -a $UPLOAD_DAEMON_CONTAINER_DIR/app $UPLOAD_DAEMON_CONTAINER_BUILD_DIR
+    sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" $UPLOAD_DAEMON_CONTAINER_DIR/templates/Dockerfile.tmpl > $UPLOAD_DAEMON_CONTAINER_BUILD_DIR/Dockerfile
+    tar cvf $UPLOAD_DAEMON_CONTAINER_BUILD_DIR/application.tar -C $UPLOAD_DAEMON_CONTAINER_BUILD_DIR/app --owner www-data --group www-data --exclude="../../../common/flask*" --exclude="*.pyc" . ../../../common
+    UPLOAD_DAEMON_CONTAINER_TAG=$GCR_PREFIX/upload-daemon
+    docker build  -t $UPLOAD_DAEMON_CONTAINER_TAG:latest -t $UPLOAD_DAEMON_CONTAINER_TAG:$GIT_TAG $UPLOAD_DAEMON_CONTAINER_BUILD_DIR
+  fi
+
+  # Build preprocess common movie pod files
+  MOVIE_DIR=$PROJ_DIR/movie
+  MOVIE_BUILD_DIR=$BUILD_DIR/movie
+  MOVIE_DAEMON_CONTAINER_DIR=$PROJ_DIR/movie/daemon
+  MOVIE_DAEMON_CONTAINER_BUILD_DIR=$BUILD_DIR/movie/daemon
+
+  mkdir -p $MOVIE_DAEMON_CONTAINER_BUILD_DIR
+  sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $MOVIE_DIR/templates/deployment.yaml.tmpl > $MOVIE_BUILD_DIR/deployment.yaml
+
+  cp -a $MOVIE_DAEMON_CONTAINER_DIR/app $MOVIE_DAEMON_CONTAINER_BUILD_DIR
+  cp -a $MOVIE_DAEMON_CONTAINER_DIR/conf $MOVIE_DAEMON_CONTAINER_BUILD_DIR
+
+  if [[ -z $APP || $APP == movie-daemon ]]; then
+    sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s:{{PROJECT_ID}}:${PROJECT_ID}:g" -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" $MOVIE_DAEMON_CONTAINER_DIR/templates/Dockerfile.tmpl > $MOVIE_DAEMON_CONTAINER_BUILD_DIR/Dockerfile
+    tar cvf $MOVIE_DAEMON_CONTAINER_BUILD_DIR/application.tar -C $MOVIE_DAEMON_CONTAINER_BUILD_DIR/app --owner www-data --group www-data --exclude="../../../common/flask*" --exclude="*.pyc" . ../../../common
+    MOVIE_DAEMON_CONTAINER_TAG=$GCR_PREFIX/movie-daemon
+    docker build -t $MOVIE_DAEMON_CONTAINER_TAG:latest -t $MOVIE_DAEMON_CONTAINER_TAG:$GIT_TAG $MOVIE_DAEMON_CONTAINER_BUILD_DIR
+  fi
+
+  # Build preprocess common image-processor pod files
+  IMAGE_PROCESSOR_DIR=$PROJ_DIR/image-processor
+  IMAGE_PROCESSOR_BUILD_DIR=$BUILD_DIR/image-processor
+  IMAGE_PROCESSOR_DAEMON_CONTAINER_DIR=$PROJ_DIR/image-processor/daemon
+  IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR=$BUILD_DIR/image-processor/daemon
+
+  mkdir -p $IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR
+  sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $IMAGE_PROCESSOR_DIR/templates/deployment.yaml.tmpl > $IMAGE_PROCESSOR_BUILD_DIR/deployment.yaml
+
+  cp -a $IMAGE_PROCESSOR_DAEMON_CONTAINER_DIR/app $IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR
+
+  if [[ -z $APP || $APP == image-processor-daemon ]]; then
+    sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" -e "s:{{PROJECT_ID}}:${PROJECT_ID}:g" -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" $IMAGE_PROCESSOR_DAEMON_CONTAINER_DIR/templates/Dockerfile.tmpl > $IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR/Dockerfile
+    tar cvf $IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR/application.tar -C $IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR/app --owner www-data --group www-data --exclude="../../../common/flask*" --exclude="*.pyc" . ../../../common
+    IMAGE_PROCESSOR_DAEMON_CONTAINER_TAG=$GCR_PREFIX/image-processor-daemon
+    docker build -t $IMAGE_PROCESSOR_DAEMON_CONTAINER_TAG:latest -t $IMAGE_PROCESSOR_DAEMON_CONTAINER_TAG:$GIT_TAG $IMAGE_PROCESSOR_DAEMON_CONTAINER_BUILD_DIR
+  fi
+fi
+
+NGINX_LB_EMULATOR_DIR=$PROJ_DIR/nginx-lb-emulator
+NGINX_LB_EMULATOR_BUILD_DIR=$PROJ_DIR/build/nginx-lb-emulator
+if [[ -z $APP || $APP == nginx-lb-emulator ]]; then
+  if [[ $LOCAL_DEV == true ]]; then
+    # Build load balancer emulator on local-dev builds
+    NGINX_LB_EMULATOR_TAG=$GCR_PREFIX/nginx-lb-emulator
+    mkdir -p $NGINX_LB_EMULATOR_BUILD_DIR
+    cp -a $NGINX_LB_EMULATOR_DIR/resources $NGINX_LB_EMULATOR_BUILD_DIR
+    sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g" $NGINX_LB_EMULATOR_DIR/templates/Dockerfile.tmpl > $NGINX_LB_EMULATOR_BUILD_DIR/Dockerfile
+    if [ "$UNRELEASED" == true ]; then
+      sed -e "s:{{UNRELEASED}}:include 'upload.conf';:g" $NGINX_LB_EMULATOR_DIR/templates/nginx.conf.tmpl > $NGINX_LB_EMULATOR_BUILD_DIR/resources/nginx.conf
+    else
+      sed -e "s:{{UNRELEASED}}::g" $NGINX_LB_EMULATOR_DIR/templates/nginx.conf.tmpl > $NGINX_LB_EMULATOR_BUILD_DIR/resources/nginx.conf
+    fi
+    docker build  -t $NGINX_LB_EMULATOR_TAG:latest -t $NGINX_LB_EMULATOR_TAG:$GIT_TAG $NGINX_LB_EMULATOR_BUILD_DIR
+  fi
+fi
+
+TEST_CONTAINER_DIR=$PROJ_DIR/test-container
+TEST_CONTAINER_BUILD_DIR=$BUILD_DIR/test-container
+SCRIPTS_DIR=$PROJ_DIR/scripts
+SRC_DIR=$PROJ_DIR/src
+if [[ -z $APP || $APP == test-container ]]; then
+  mkdir -p $TEST_CONTAINER_BUILD_DIR/{app,conf}
+  cp -a $SCRIPTS_DIR $TEST_CONTAINER_BUILD_DIR/app
+  cp -a $SRC_DIR/eclipse_gis/src/eclipse_gis $TEST_CONTAINER_BUILD_DIR/app
+  cp -a $SRC_DIR/eclipse_gis/data $TEST_CONTAINER_BUILD_DIR/app
+  cp -a $PROFILE_DIR $TEST_CONTAINER_BUILD_DIR/app
+  rm -rf $TEST_CONTAINER_BUILD_DIR/app/admin
+  mkdir $TEST_CONTAINER_BUILD_DIR/app/admin
+  cp -a $ADMIN_APP_DIR $TEST_CONTAINER_BUILD_DIR/app/admin
+  if [ "$UNRELEASED" == "true" ]; then
+    rm -rf $TEST_CONTAINER_BUILD_DIR/app/upload
+    mkdir $TEST_CONTAINER_BUILD_DIR/app/upload
+    cp -a $UPLOAD_DAEMON_CONTAINER_DIR $TEST_CONTAINER_BUILD_DIR/app/upload
+    cp -a $UPLOAD_APP_DIR $TEST_CONTAINER_BUILD_DIR/app/upload
+    rm -rf $TEST_CONTAINER_BUILD_DIR/app/movie
+    mkdir $TEST_CONTAINER_BUILD_DIR/app/movie
+    cp -a $MOVIE_DAEMON_CONTAINER_DIR $TEST_CONTAINER_BUILD_DIR/app/movie
+  fi
+
+  sed -e "s:{{GCR_PREFIX_WITH_SLASH}}:${SED_SAFE_GCR_PREFIX}/:g"  -e "s#{{DATASTORE_EMULATOR}}#${DATASTORE_EMULATOR}#g" -e "s#{{PROJECT_ID}}#${PROJECT_ID}#g" $TEST_CONTAINER_DIR/templates/Dockerfile.tmpl > $TEST_CONTAINER_BUILD_DIR/Dockerfile
+  tar cvf $TEST_CONTAINER_BUILD_DIR/application.tar -C $TEST_CONTAINER_BUILD_DIR/app --owner www-data --group www-data --exclude="../../../common/flask*" --exclude="*.pyc" . ../../common ../../common_tests
+  cp $TEST_CONTAINER_DIR/conf/requirements.txt $TEST_CONTAINER_BUILD_DIR/conf/requirements.txt
+  TEST_CONTAINER_TAG=$GCR_PREFIX/test-container
+  docker build -t $TEST_CONTAINER_TAG:latest $TEST_CONTAINER_BUILD_DIR
+fi
+
+SYSTEST_DIR=$PROJ_DIR/upload/system-tests
+SYSTEST_BUILD_DIR=$BUILD_DIR/upload/system-tests
+if [[ $CMD = systest ]]; then
+    mkdir -p $SYSTEST_BUILD_DIR
+    cp -a $SYSTEST_DIR/app $SYSTEST_BUILD_DIR
+    sed -e "s:{{GCR_PREFIX}}:$SED_SAFE_GCR_PREFIX:g" $SYSTEST_DIR/templates/Dockerfile.tmpl > $SYSTEST_BUILD_DIR/Dockerfile
+    tar cvf $SYSTEST_BUILD_DIR/application.tar -C $SYSTEST_BUILD_DIR/app --owner www-data --group www-data --exclude="../../../common/flask*" --exclude="*.pyc" . ../../../common
+    docker build  -t $GCR_PREFIX/upload-system-tests $SYSTEST_BUILD_DIR
+    popd
+fi
+
+echo "Done building."

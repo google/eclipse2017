@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# Copyright 2016 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+$PROJ_DIR/scripts/_build
+$PROJ_DIR/scripts/_push
+
+# Upload server stress tests
+echo "Running upload server stress tests..."
+python $PROJ_DIR/upload/system_tests/runtests.py
+UPLOAD_STRESS_PASS=$?
+
+# Final result
+echo
+test $UPLOAD_STRESS_PASS -eq 0
+if [ $? == 0 ]; then
+    echo "ALL TESTS PASSED"
+else
+    echo "SOME TEST(S) FAILED"
+fi

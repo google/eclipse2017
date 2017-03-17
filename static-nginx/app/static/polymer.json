@@ -1,0 +1,24 @@
+{
+  "entrypoint": "index.html",
+  "shell": "src/eclipse-app.html",
+  "fragments": [
+    "src/eclipse-overview.html",
+    "src/eclipse-about.html",
+    "src/eclipse-megamovie.html",
+    "src/eclipse-profile.html",
+    "src/eclipse-resources.html",
+    "src/eclipse-safety.html",
+    "src/eclipse-view404.html",
+    "src/eclipse-admin.html"
+  ],
+  "sourceGlobs": [
+    "sitemap.xml",
+    "src/**/*",
+    "images/**/*",
+    "bower.json"
+  ],
+  "includeDependencies": [
+    "manifest.json",
+    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+  ]
+}

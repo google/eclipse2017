@@ -1,0 +1,57 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: admin
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: admin-backend
+    matchExpressions:
+      - {key: tier, operator: In, values: [admin-backend]}
+  template:
+    metadata:
+      labels:
+        app: admin
+        tier: admin-backend
+    spec:
+      containers:
+        - name: admin-server
+          image: {{GCR_PREFIX}}/admin-server
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          # TODO(dek): health probe
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 1000M
+              requests:
+                  cpu: 1000m
+                  memory: 1000M
+        - name: admin-nginx
+          image: {{GCR_PREFIX}}/admin-nginx
+          ports:
+            - containerPort: 80
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          resources:
+              limits:
+                  cpu: 500m
+                  memory: 1000M
+              requests:
+                  cpu: 500m
+                  memory: 1000M

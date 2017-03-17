@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: static-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: static-nginx-backend
+    matchExpressions:
+      - {key: tier, operator: In, values: [static-nginx-backend]}
+  template:
+    metadata:
+      labels:
+        app: static-nginx
+        tier: static-nginx-backend
+    spec:
+      containers:
+        - name: static-nginx
+          image: {{GCR_PREFIX}}/static-nginx
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1000M
+            requests:
+              cpu: 500m
+              memory: 1000M

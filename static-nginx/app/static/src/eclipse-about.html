@@ -1,0 +1,119 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
+<link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
+<link rel="import" href="eclipse-section/eclipse-section.html">
+<link rel="import" href="eclipse-text-box/eclipse-text-box.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-about">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+
+      .where-box {
+
+      }
+
+      .safety-box {
+
+      }
+
+      .attribution a:hover {
+        text-decoration:underline;
+      }
+
+      .attribution a {
+        color: var(--paper-yellow-500);
+        text-decoration:none;
+      }
+
+      .attribution {
+        @apply(--paper-font-caption);
+        @apply(--layout-self-start);
+        background: rgba(0,0,0,.6);
+        padding: 4px;
+        position:absolute;
+        bottom:0;
+        right: 0;
+      }
+    </style>
+
+    <!-- Eclipse About page content -->
+    <div id="about">
+      <eclipse-section size="{{whatData.size}}" color="{{whatData.color}}">
+        <img src="/images/02_Eclipse_01.svg"/>
+        <eclipse-text-box title="{{whatData.title}}" body="{{whatData.body}}" has-links-in-body="true">
+        </eclipse-text-box>
+      </eclipse-section>
+      <eclipse-scroll-button></eclipse-scroll-button>
+      <eclipse-section size="{{sunData.size}}" color="{{sunData.color}}">
+        <img src="/images/02_Eclipse_02.svg"/>
+        <eclipse-text-box title="{{sunData.title}}" body="{{sunData.body}}" has-links-in-body="true">
+        </eclipse-text-box>
+      </eclipse-section>
+      <eclipse-section class="where-section" size="{{whereData.size}}" color="{{whereData.color}}">
+        <img src="/images/02_Eclipse_03.svg"/>
+        <eclipse-text-box class="where-box" title="{{whereData.title}}" body="{{whereData.body}}" bg="{{whereData.textBackground}}" has-links-in-body="true">
+        </eclipse-text-box>
+      </eclipse-section>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-about',
+
+      behaviors: [EclipseBehaviors.ScrollToAnchorBehavior],
+
+      properties: {
+        whatData: {
+          type: Object,
+          value: {
+            size: "large",
+            color: "#000",
+            title: "What's a solar eclipse?",
+            body: "The August 21, 2017 total solar eclipse will be the first to cross a large portion of the United States in almost 40 years. Solar eclipses occur when the Moon comes between the Sun and the Earth, blocking the light of the Sun and casting a shadow on the Earth. The Moon looks almost exactly the same size as the Sun in the sky. This similarity is coincidental! The Sun is 400 times wider than the Moon but it is also 400 times further away, so the two cover the same sized area from our point of view on Earth. For a visual interpretation, see these <a href='http://svs.gsfc.nasa.gov/cgi-bin/details.cgi?aid=4324' target='_blank'>NASA animations</a>. For more detailed information about the 2017 total solar eclipse, visit our [Resources page](/resources)."
+          }
+        },
+        sunData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#273492",
+            title: "Our Dynamic Sun",
+            body: "Stars, including our Sun, are complicated wonders of the universe.  At the center of the Sun is its hot, dense core, where energy is produced by the process of nuclear fusion (the same source of energy as a hydrogen bomb). The Sun has many other layers, as shown in our diagram. For example, the one labeled “photosphere” is where the light we see from the Sun emerges. Solar scientists are still trying to understand many of the details of the Sun’s structure and overall behavior. Click <a href='/megamovie#science'>here</a> to learn more about the new data the Megamovie team aims to discover with your help!"
+          }
+        },
+        whereData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#0f9d58",
+            title: "Where to watch",
+            body: "We hope you will join us on August 21, 2017, and learn how to take photographs of a total solar eclipse safely and with good enough resolution to contribute to the Eclipse Megamovie Project. This event provides a fantastic opportunity for everyone to learn more about our closest star, the Sun. You can also explore the Moon and Earth orbits that make total solar eclipses possible. Ready to plan your own eclipse viewing excursion? We recommend using <a href='http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html' target='_blank'>NASA’s interactive map</a> in order to more precisely determine your personal optimal viewing location."
+          }
+        }
+      }
+    });
+  </script>
+</dom-module>

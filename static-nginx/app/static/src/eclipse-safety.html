@@ -1,0 +1,137 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
+<link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
+<link rel="import" href="eclipse-section/eclipse-section.html">
+<link rel="import" href="eclipse-text-box/eclipse-text-box.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-safety">
+  <template>
+    <style include="shared-styles">
+      :host {
+        @apply(--layout-vertical);
+      }
+
+      .image-holder {
+        height: 600px;
+        position:relative;
+        background-image: url("/images/02_Eclipse_04.png");
+        background-repeat: no-repeat;
+        background-size:cover;
+        background-position: center;
+      }
+
+      .safety-holder {
+        @apply(--layout-flex);
+        background-color: #4481f8;
+        padding: 24px 36px;
+      }
+
+      .safety-content {
+        @apply(--content-width);
+        @apply(--paper-font-body1);
+      }
+
+      .safety-content a:hover {
+        text-decoration:underline;
+      }
+
+      .safety-content a {
+        text-decoration:none;
+        color: var(--link-color, --paper-yellow-500);
+      }
+
+      .safety-content strong {
+        text-decoration:underline;
+      }
+
+      .attribution a:hover {
+        text-decoration:underline;
+      }
+
+      .attribution a {
+        color: var(--paper-yellow-500);
+        text-decoration:none;
+      }
+
+      .attribution {
+        @apply(--paper-font-caption);
+        @apply(--layout-self-end);
+        background: rgba(0,0,0,.6);
+        padding: 4px;
+        position:absolute;
+        right:0;
+        bottom: 0;
+      }
+    </style>
+
+    <!-- Safety page content -->
+    <div id="main">
+      <div class="image-holder">
+        <div class="attribution">Photo by <a href="http://www.astroalima.com/" target="_blank">Nancy Alima Ali</a>, <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></div>
+      </div>
+      <div class="safety-holder">
+        <div class="safety-content">
+          <h2>Solar Viewing Glasses</h2>
+
+          <p>Please make sure to view the 2017 total solar eclipse safely and never look at the Sun without protection, such as the solar viewing glasses pictured here. Many <a href='http://www.astc.org/about-astc/about-science-centers/find-a-science-center/' target='_blank'>science museums</a>, <a href='http://www.starnetlibraries.org/' target='_blank'>libraries</a>, and <a href='https://nightsky.jpl.nasa.gov/' target='_blank'>astronomy clubs</a> are distributing or selling eclipse viewing glasses.</p>
+
+          <p>Solar viewing glasses can also be purchased directly from manufacturers like <a href="https://www.rainbowsymphony.com/eclipse-glasses/" target="_blank">Rainbow Symphony</a> and <a href="http://www.eclipseglasses.com/" target="_blank">American Paper Optics.</a> </p>
+
+          <p>But no matter where you get your eclipse glasses, you must know how to use them properly.</p>
+          <h3>Here are some tips from the Megamovie team:</h3>
+
+          <ol>
+            <li>Make sure to read, carefully, any instructions that come with your glasses.</li>
+            <li>Before you put the glasses on, make sure that the black plastic within the paper frames is not scratched or broken.  Carefully check any glasses that children will be wearing as well.</li>
+            <li>Make sure that the glasses fit snugly behind the ears and won’t fall off.  Try moving your head around and walking a little before you look at the Sun.  Again, make sure any children under your supervision also have their glasses on snugly.</li>
+            <li>It is never safe to look at any part of the bright Sun without the eclipse glasses (see below for additional details).</li>
+            <li>With the glasses, you can look at the Sun safely for as long as you want.  If the Sun is partly eclipsed, or has large sunspots on its surface, these glasses are ideal for viewing.</li>
+            <li>Note that these glasses will not be able to protect you if you look at the Sun through a telescope without a certified solar filter attached to it.</li>
+          </ol>
+
+          <h3>When do you need to wear the glasses?</h3>
+
+          <ol>
+            <li>You need to wear the glasses whenever any part of the bright Sun is visible.</li>
+            <li>If you are on the <a href="http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html" target="_blank">path of totality</a>, you can remove your solar viewing glasses <strong>during, and only during,</strong> the brief moment of totality when the Sun is <strong>completely</strong> blocked out by the Moon </li>
+          </ol>
+
+          <h3>Can I use the glasses when there is no eclipse?</h3>
+
+          <ol>
+            <li>Yes, you can view the Sun any time with the glasses (but check them carefully each time before you use them to be sure there are no cracks or other damage).</li>
+            <li>When the Sun is not eclipsed, there are still things to look for.  For example, when there are big groups of sunspots (dark, cooler areas) on the Sun, you can see them on the Sun’s surface.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-safety',
+      behaviors: [EclipseBehaviors.ScrollToAnchorBehavior],
+
+      properties: {
+      }
+    });
+  </script>
+</dom-module>

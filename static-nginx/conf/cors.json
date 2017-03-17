@@ -1,0 +1,2 @@
+[{"maxAgeSeconds": 3600, "method": ["GET", "HEAD"], "origin": ["https://prod.eclipsemega.movie"], "responseHeader": ["Content-Type"]}]
+

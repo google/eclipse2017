@@ -1,0 +1,96 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-footer">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+        background: #212121;
+      }
+
+      #footer {
+        @apply(--layout-flex);
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-end-justified);
+        @apply(--content-width);
+        @apply(--paper-font-subhead);
+        padding: 24px 32px;
+      }
+
+      #footer a:hover {
+        text-decoration: underline;
+      }
+
+      #footer a {
+        text-decoration: none;
+        display: block;
+        color: #f1f1f1;
+      }
+
+      #footer img {
+        margin-left:12px;
+        margin-right:12px;
+        position:relative;
+        top: 2px;
+      }
+
+      .attribution_lead {
+        @apply(--layout-flex);
+        text-align:right;
+        margin-top:12px;
+        margin-bottom:12px;
+      }
+
+      @media all and (min-width:600px) {
+        #footer {
+          @apply(--layout-horizontal);
+        }
+      }
+    </style>
+
+    <!-- Eclipse footer -->
+    <div id="footer">
+        <a id="privacy" href="https://www.google.com/policies/privacy/" target="_blank">Privacy &amp; Terms</a>
+
+        <div class="attribution_lead">Brought to you by </div>
+
+        <a href="http://www.berkeley.edu" target="_blank">
+          <img class="logo" alt="UC Berkeley" src="/images/logo_footer_berkeley.png" />
+        </a>
+        and
+        <a href="http://www.google.com" target="_blank">
+          <img alt="Google" class="logo-google" src="/images/logo_footer_google.png"/>
+        </a>
+        </div>
+        </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-footer'
+    });
+  </script>
+</dom-module>

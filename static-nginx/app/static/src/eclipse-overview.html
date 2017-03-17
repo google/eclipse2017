@@ -1,0 +1,336 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/google-signin/google-signin.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/marked-element/marked-element.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/paper-styles/shadow.html">
+<link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
+<link rel="import" href="eclipse-section/eclipse-section.html">
+<link rel="import" href="eclipse-text-box/eclipse-text-box.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-overview">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+        width:100%;
+      }
+
+      .about h2 {
+        @apply(--paper-font-display1);
+      }
+
+      .about {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-center-justified);
+        background-color: #4881f4;
+        min-height: 65vh;
+      }
+
+      .cards {
+        @apply(--layout-vertical);
+      }
+
+      @media all and (min-width:600px) {
+        .cards {
+          @apply(--layout-horizontal);
+        }
+      }
+
+      .cards a {
+        display: flex;
+      }
+
+      paper-card:hover {
+        @apply(--shadow-elevation-16dp);
+        position:relative;
+        top: -2px;
+      }
+
+      paper-card {
+        @apply(--card);
+        @apply(--layout-flex-auto);
+      }
+      paper-card .card-image-holder {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+        padding: 16px 0;
+      }
+      paper-card .text {
+        @apply(--paper-font-body1);
+
+      }
+      paper-card .title {
+        @apply(--paper-font-subhead);
+        color: var(--paper-blue-500);
+        display:block;
+        text-align:center;
+        text-decoration:none;
+      }
+
+      #joingroup {
+        background-color: #f8e71c;
+      }
+
+      .attribution a:hover,
+      .partner-list a:hover {
+        text-decoration: underline;
+      }
+
+      a paper-button,
+      a:active paper-button,
+      a:visited paper-button {
+        color: var(--paper-grey-800);
+        text-decoration:none;
+      }
+
+      a {
+        text-decoration: none;
+        color: var(--paper-yellow-500);
+      }
+
+      a.learnmore {
+        margin-left: 24px;
+        margin-right: 24px;
+        color: #fff;
+      }
+
+      a.learnmore paper-button {
+        color: #fff;
+      }
+
+      .partner-list {
+        @apply(--layout-vertical);
+        @apply(--layout-center-justified);
+        text-align:center;
+        margin:24px 0;
+      }
+
+      .partner-list a {
+        color: var(--paper-yellow-500);
+        display: block;
+        margin: 4px 8px;
+      }
+
+      .image-holder {
+        text-align:center;
+      }
+
+      @media all and (min-width:600px) {
+        .image-holder {
+          max-width:calc(100% - 500px);
+        }
+      }
+
+      .image-holder img {
+        width: 100%;
+      }
+
+      .attribution {
+        @apply(--paper-font-caption);
+      }
+
+      #signin {
+        margin-left:36px;
+      }
+    </style>
+
+    <!-- Home page content -->
+    <div id="main">
+      <eclipse-section size="{{joinUsData.size}}" color="{{joinUsData.color}}" alignment="center">
+        <div class="image-holder">
+          <img src="/images/01_Home_01.jpg"/>
+          <span class="attribution"><a href="https://www.flickr.com/photos/40802894@N02/3780007140/" target="_blank">Photo</a> by <a href="https://www.flickr.com/photos/kuboki/" target="_blank">Takeshi Kuboki</a>, <a href="https://creativecommons.org/licenses/by/2.0/deed.en" target="_blank">CC BY 2.0</a></span>
+        </div>
+        <eclipse-text-box title="{{joinUsData.title}}" body="{{joinUsData.body}}">
+        </eclipse-text-box>
+      </eclipse-section>
+      <eclipse-scroll-button></eclipse-scroll-button>
+      <eclipse-section size="{{projectData.size}}" color="{{projectData.color}}">
+        <img src="/images/01_Home_02.svg"/>
+        <div>
+          <eclipse-text-box title="{{projectData.title}}" body="{{projectData.body}}"></eclipse-text-box>
+          <a class="learnmore" href="/megamovie#science"><paper-button>Learn more</paper-button></a>
+        </div>
+      </eclipse-section>
+      <eclipse-section size="{{participateData.size}}" color="{{participateData.color}}">
+        <img src="/images/02_Eclipse_03.svg"/>
+        <div>
+          <eclipse-text-box id="participateText" title="{{participateData.title}}" body="{{participateData.body}}" has-links-in-body="true"></eclipse-text-box>
+          <google-signin
+              id="signin"
+              scopes="profile"
+              raised="true"
+              on-google-signin-success="onSignIn"
+              on-google-signed-out="onSignOut"
+              hidden$="{{isSignedIn}}"
+          ></google-signin>
+        </div>
+      </eclipse-section>
+      <div class="about">
+        <h2>About Us</h2>
+        <div class="cards">
+          <a href="https://makingscience.withgoogle.com" target="_blank">
+            <paper-card elevation="2">
+              <div class="card-image-holder"><img src="{{cardGoogle.image}}" /></div>
+              <div class="title">[[cardGoogle.title]]</div>
+              <marked-element class="text" markdown="{{cardGoogle.body}}">
+                <div class="markdown-html"></div>
+              </marked-element>
+            </paper-card>
+          </a>
+          <a href="http://multiverse.ssl.berkeley.edu/" target="_blank">
+            <paper-card elevation="2">
+              <div class="card-image-holder"><img src="{{cardBerkeley.image}}" /></div>
+              <div class="title">[[cardBerkeley.title]]</div>
+              <marked-element class="text" markdown="{{cardBerkeley.body}}">
+                <div class="markdown-html"></div>
+              </marked-element>
+            </paper-card>
+          </a>
+        </div>
+        <div class="partner-list">
+          <h2>Partners</h2>
+          <template is="dom-repeat" items="[[partnerList]]">
+            <a href="[[item.url]]" target="_blank">[[item.title]]</a>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-overview',
+
+      properties: {
+        joinUsData: {
+          type: Object,
+          value: {
+            size: "large",
+            color: "#0d0d0d",
+            title: "Join Us August 21, 2017",
+            body: "Join us in this first-of-its-kind citizen science project, gathering scientifically valuable data from the total solar eclipse that will traverse North America on August 21, 2017."
+          }
+        },
+        projectData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#4881f4",
+            title: "The Project",
+            body: "The Eclipse Megamovie Project will gather images and video of the 2017 total solar eclipse from over 1,000 volunteer photographers and amateur astronomers, as well as many more members of the general public. We’ll then stitch these media assets together to create an expanded and continuous view of the total eclipse as it crosses the United States."
+          }
+        },
+        participateData: {
+          type: Object,
+          value: {
+            size: "medium",
+            color: "#0f9d58",
+            title: "How You Can Participate!",
+            body: "Will you be under the path of totality for the August 21, 2017 total solar eclipse? If so, we hope you can participate in the project! Sign in to enter your planned eclipse viewing location and your planned camera setup and more.",
+            signedInBody: "Will you be under the path of totality for the August 21, 2017 total solar eclipse? If so, we hope you can participate in the project! Go to your <a href='/profile'>profile </a> to update your planned eclipse viewing location and your planned camera setup and more."
+          }
+        },
+        cardGoogle: {
+          type: Object,
+          value: {
+            image: "/images/collaborator1_Google.png",
+            title: "Making & Science Team",
+            body: "We’re the Making & Science team and we work to support programs that inspire interest in science and making. Many of the Google products used by millions of people around the world exist because makers, scientists, and engineers wanted to create projects to improve our world. If you want to join in, we are here for you."
+          }
+        },
+        cardBerkeley: {
+          type: Object,
+          value: {
+            image: "/images/collaborator2_Berkeley.png",
+            title: "Multiverse Team",
+            body: "The Multiverse team headquartered at UC Berkeley’s Space Sciences Laboratory aims to increase diversity in the fields of earth and space science through multicultural education. By way of carefully crafted educational opportunities and resources, we seek to connect with people’s sense of wonder and help them make personal ties to science and the learning process."
+          }
+        },
+        isSignedIn: {
+          type: Boolean
+        }
+      },
+
+      ready: function() {
+        this.partnerList = [
+          {
+            "title" : "Astronomical Society of the Pacific",
+            "url" : "https://www.astrosociety.org/"
+          },
+          {
+            "title" : "Center for Research on Lifelong STEM Learning, Oregon State University",
+            "url" : "http://stem.oregonstate.edu/"
+          },
+          {
+            "title" : "Eclipse Across America",
+            "url" : "http://www.eclipseacrossamerica.org/"
+          },
+          {
+            "title" : "Foothill College",
+            "url": "https://www.foothill.edu/ast/fraknoi.php"
+          },
+          {
+            "title" : "High Altitude Observatory of the National Center for Atmospheric Research",
+            "url" : "https://www2.hao.ucar.edu/"
+          },
+          {
+            "title" : "Lick Observatory",
+            "url" : "https://www.ucolick.org/"
+          },
+          {
+            "title" : "Space Sciences Laboratory, University of California, Berkeley",
+            "url" : "http://www.ssl.berkeley.edu/"
+          },
+          {
+            "title" : "Williams College and the IAU Working Group",
+            "url" : "http://sites.williams.edu/iau-eclipses/"
+          }
+        ];
+        this._updateParticipateBlock();
+      },
+
+      onSignIn: function() {
+        this.isSignedIn = this.$.signin.signedIn;
+        this._updateParticipateBlock();
+      },
+
+      onSignOut: function() {
+        this.isSignedIn = this.$.signin.signedIn;
+        this._updateParticipateBlock();
+      },
+
+      _updateParticipateBlock: function() {
+        if (this.$.participateText && this.participateData) {
+          if (this.isSignedIn) {
+            this.$.participateText.body = this.participateData.signedInBody;
+          } else {
+            this.$.participateText.body = this.participateData.body;
+          }
+        }
+      }
+    });
+  </script>
+</dom-module>

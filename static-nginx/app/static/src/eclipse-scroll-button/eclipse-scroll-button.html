@@ -1,0 +1,151 @@
+<!--
+Copyright 2016 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../shared-styles.html">
+
+<dom-module id="eclipse-scroll-button">
+  <template>
+    <style is="custom-style" include="shared-styles">
+      :host {
+      }
+
+      .scroll-down {
+        position:absolute;
+        top: calc(100vh - 75px - 10px);
+        margin-left:50%;
+        width:auto;
+        height:auto;
+      }
+    </style>
+
+    <paper-icon-button class="scroll-down" src="/images/Icon_arrow_down.png" on-tap="scrollDown" hidden$="{{!wideLayout}}"></paper-icon-button>
+    <iron-media-query query="min-width: 600px" query-matches="{{wideLayout}}"></iron-media-query>
+  </template>
+  <script>
+        Polymer({
+          is: 'eclipse-scroll-button',
+
+          scrollDown : function(e) {
+            var h = window.innerHeight
+                || document.documentElement.clientHeight
+                || document.body.clientHeight;
+            this._scroll(h);
+          },
+
+          properties : {
+            anchor : {
+              type: String
+            },
+            scrollTarget : {
+              type: HTMLElement
+            }
+          },
+
+          ready: function() {
+            this.scrollTarget = window;
+          },
+
+          attached: function() {
+            this.scrollHandler = function() {};
+
+            if (this.scrollTarget) {
+
+              // if no handler in parent component, prevent fire _scrollHandler
+              if (this._scrollHandler) {
+                this.scrollHandler = function(event) {
+                  requestAnimationFrame(function() {
+                    this._scrollHandler(event);
+                  }.bind(this));
+                }.bind(this);
+              }
+
+              // Listens to the window scroll event.
+                this.scrollTarget.addEventListener('scroll',
+                    this.scrollHandler);
+              }
+          },
+
+          detached: function() {
+            if (this.scrollTarget) {
+              this.scrollTarget.removeEventListener('scroll',
+                  this.scrollHandler);
+            }
+
+            this.scrollHandler = null;
+          },
+
+          getScrollTop: function() {
+            var scroll;
+
+            if (this.scrollTarget.scrollY) {
+              scroll = this.scrollTarget.scrollY;
+            } else {
+              scroll = this.scrollTarget.pageYOffset;
+            }
+
+            return scroll;
+          },
+
+          /**
+           * Scroll to a specific y coordinate.
+           *
+           * @param {number} top The coordinate to scroll to, along the y-axis.
+           * adjusted.
+           */
+          _scroll: function(top) {
+            // the scroll event will trigger _updateScrollState directly,
+            // However, _updateScrollState relies on the previous `scrollTop` to
+            // update the states.
+            // Calling _updateScrollState will ensure that the states are synced
+            // correctly.
+
+            var easingFn = function easeInOutCubic(t, b, c, d) {
+              if ((t /= d / 2) < 1) {
+                return c / 2 * t * t * t + b;
+              }
+              return c / 2 * ((t -= 2) * t * t + 2) + b;
+            };
+
+            var animationId = Math.random();
+            var duration = 400;
+            var startTime = Date.now();
+            var currentScrollTop = this.getScrollTop();
+            var deltaScrollTop = top - currentScrollTop;
+
+            this._currentAnimationId = animationId;
+
+            (function updateFrame() {
+              var now = Date.now();
+              var elapsedTime = now - startTime;
+
+              if (elapsedTime > duration) {
+                this.scrollTarget.scroll(0, top);
+
+              } else if (this._currentAnimationId === animationId) {
+
+                this.scrollTarget.scroll(0,
+                    easingFn(elapsedTime, currentScrollTop,
+                        deltaScrollTop, duration));
+
+                requestAnimationFrame(updateFrame.bind(this));
+              }
+
+            }).call(this);
+          }
+        });
+    </script>
+</dom-module>

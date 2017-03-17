@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# Copyright 2016 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+echo "Tearing down deployment..."
+
+if [[ $LOCAL_DEV != true ]]; then
+  # TODO(dek): support APP selector here to selectively restart some containers.
+  if [[ -z $APP || $APP == profile-server || $APP == profile-nginx ]]; then
+    kubectl delete service --ignore-not-found profile
+    kubectl delete -f build/profile/deployment.yaml --ignore-not-found
+  fi
+  if  [[ -z $APP || $APP == admin-server || $APP == admin-nginx ]]; then
+    kubectl delete service --ignore-not-found admin
+    kubectl delete -f build/admin/deployment.yaml --ignore-not-found
+  fi
+  if  [[ -z $APP || $APP == upload-server || $APP == upload-nginx ]]; then
+    kubectl delete service --ignore-not-found upload
+    kubectl delete -f build/upload/deployment.yaml --ignore-not-found
+  fi
+
+  if [ "$UNRELEASED" == "true" ]; then
+    if  [[ -z $APP || $APP == movie ]]; then
+      kubectl delete service --ignore-not-found movie
+      kubectl delete -f build/movie/deployment.yaml --ignore-not-found
+    fi
+    if  [[ -z $APP || $APP == image-processor-daemon ]]; then
+      kubectl delete service --ignore-not-found image-processor
+      kubectl delete -f build/image-processor/deployment.yaml --ignore-not-found
+    fi
+    if  [[ -z $APP || $APP == static-nginx ]]; then
+      kubectl delete service --ignore-not-found static-nginx
+      kubectl delete -f build/static-nginx/deployment.yaml --ignore-not-found
+    fi
+  fi
+else
+  IMAGES="profile-server \
+          profile-nginx \
+          admin-server \
+          admin-nginx \
+          datastore-emulator \
+          static-nginx \
+          nginx-lb-emulator"
+
+  if [ "$UNRELEASED" == "true" ]; then
+    IMAGES="$IMAGES \
+      upload-server \
+      upload-nginx \
+      upload-daemon \
+      image-processor-daemon \
+      movie-daemon"
+  fi
+
+  for img in $IMAGES; do
+    [[ -z $APP || $APP == $img ]] && docker rm -f $img
+  done
+fi
+
+echo "Done tearing down deployment."
