@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import hashlib
+import logging
 import types
 import flask
 
