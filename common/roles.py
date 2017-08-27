@@ -91,7 +91,7 @@ class Roles:
     def _validate_fields(self, json):
         if 'roles' not in json:
             raise RolesNotInJSON
-        if type(json['roles']) is not types.ListType:
+        if not isinstance(json['roles'], list):
             raise ValueError
         return True
 
