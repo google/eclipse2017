@@ -18,6 +18,7 @@ USER_ROLES = set(('user', ADMIN_ROLE, 'asp'))
 from common import util
 from common import test_common
 
+import flask
 from gcloud.exceptions import GCloudError
 from common.eclipse2017_exceptions import MissingUserError
 from gcloud import datastore
