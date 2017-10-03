@@ -16,6 +16,7 @@ limitations under the License.
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/google-signin/google-signin.html">
+<link rel="import" href="../bower_components/google-youtube/google-youtube.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/marked-element/marked-element.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
@@ -23,10 +24,12 @@ limitations under the License.
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
 <link rel="import" href="../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../bower_components/marked-element/marked-element.html">
 <link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
 <link rel="import" href="eclipse-section/eclipse-section.html">
 <link rel="import" href="eclipse-text-box/eclipse-text-box.html">
 <link rel="import" href="shared-styles.html">
+<script src="movie-id.js"></script>
 
 <dom-module id="eclipse-overview">
   <template>
@@ -141,6 +144,10 @@ limitations under the License.
         .image-holder {
           max-width:calc(100% - 500px);
         }
+
+        .video-description {
+          max-width: 350px;
+        }
       }
 
       .image-holder img {
@@ -154,40 +161,91 @@ limitations under the License.
       #signin {
         margin-left:36px;
       }
-    </style>
 
+      .video-holder {
+        position:relative;
+        background:#000;
+        display:flex;
+        width:100%;
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+      }
+
+      .video-overlay {
+        position:absolute;
+        z-index: 1;
+        text-shadow: 3px 3px #000000;
+        text-align:center;
+        left:0;
+        right:0;
+        top:0;
+        bottom:0;
+        @apply(--layout-vertical);
+        @apply(--layout-center-justified);
+        @apply(--layout-center);
+        pointer-events: none;
+      }
+
+      .video-overlay h2 {
+        @apply(--paper-font-display1);
+        max-width: 450px;
+      }
+
+      .video-overlay p {
+        max-width: 450px;
+      }
+
+      .video-holder[nonfluid] {
+        min-height: 60vh;
+        @apply(--layout-center);
+        @apply(--layout-wrap);
+      }
+
+      .video-description {
+        @apply(--paper-font-body1);
+        margin: 32px;
+      }
+
+      .video-description h2 {
+        @apply(--paper-font-display1);
+      }
+
+      .metric {
+        @apply(--paper-font-display1);
+      }
+    </style>
+    <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
     <!-- Home page content -->
     <div id="main">
-      <eclipse-section size="{{joinUsData.size}}" color="{{joinUsData.color}}" alignment="center">
-        <div class="image-holder">
-          <img src="/images/01_Home_01.jpg"/>
-          <span class="attribution"><a href="https://www.flickr.com/photos/40802894@N02/3780007140/" target="_blank">Photo</a> by <a href="https://www.flickr.com/photos/kuboki/" target="_blank">Takeshi Kuboki</a>, <a href="https://creativecommons.org/licenses/by/2.0/deed.en" target="_blank">CC BY 2.0</a></span>
+
+      <div class="video-holder" nonfluid>
+        <google-youtube
+            name="hero"
+            video-id="[[movieId]]"
+            controls="1"
+            modestbranding="1"
+            showinfo="0"
+            iv_load_policy="3"
+            rel="0"
+            state="{{state}}"
+        ></google-youtube>
+        <div class="video-description">
+          <h2>Megamovie 2017</h2>
+          <p>This first-of-its-kind citizen science project is a collection of photos submitted by a group of dedicated volunteers from locations across the United States during the August 21, 2017 total solar eclipse. These individual photos have been stitched together to give us an extended look at the sun’s atmosphere as the eclipse traversed the US.</p>
+          <p>This is but a preview of what can be made with these data. This video was compiled algorithmically, but future versions can be compiled with additional hands-on editing to improve the outcome. The full dataset of images will be made public, allowing for improved movies, and providing opportunities for the scientific community to study the sun for years to come.</p>
+          <div>
+            <div class="metric">12.3k</div>
+            <span>Participants</span>
+          </div>
+          <div>
+            <div class="metric">46k</div>
+            <span>Photographs</span>
+          </div>
         </div>
-        <eclipse-text-box title="{{joinUsData.title}}" body="{{joinUsData.body}}">
-        </eclipse-text-box>
-      </eclipse-section>
-      <eclipse-scroll-button></eclipse-scroll-button>
-      <eclipse-section size="{{projectData.size}}" color="{{projectData.color}}">
-        <img src="/images/01_Home_02.svg"/>
-        <div>
-          <eclipse-text-box title="{{projectData.title}}" body="{{projectData.body}}"></eclipse-text-box>
-          <a class="learnmore" href="/megamovie#science"><paper-button>Learn more</paper-button></a>
-        </div>
-      </eclipse-section>
-      <eclipse-section size="{{participateData.size}}" color="{{participateData.color}}">
-        <img src="/images/02_Eclipse_03.svg"/>
-        <div>
-          <eclipse-text-box id="participateText" title="{{participateData.title}}" body="{{participateData.body}}" has-links-in-body="true"></eclipse-text-box>
-          <google-signin
-              id="signin"
-              scopes="profile"
-              raised="true"
-              on-google-signin-success="onSignIn"
-              on-google-signed-out="onSignOut"
-              hidden$="{{isSignedIn}}"
-          ></google-signin>
-        </div>
-      </eclipse-section>
+      </div>
+
+      <!-- Follow along could go here. -->
+
       <div class="about">
         <h2>About Us</h2>
         <div class="cards">
@@ -224,35 +282,9 @@ limitations under the License.
     Polymer({
       is: 'eclipse-overview',
 
+      behaviors: [],
+
       properties: {
-        joinUsData: {
-          type: Object,
-          value: {
-            size: "large",
-            color: "#0d0d0d",
-            title: "Join Us August 21, 2017",
-            body: "Join us in this first-of-its-kind citizen science project, gathering scientifically valuable data from the total solar eclipse that will traverse North America on August 21, 2017."
-          }
-        },
-        projectData: {
-          type: Object,
-          value: {
-            size: "medium",
-            color: "#4881f4",
-            title: "The Project",
-            body: "The Eclipse Megamovie Project will gather images and video of the 2017 total solar eclipse from over 1,000 volunteer photographers and amateur astronomers, as well as many more members of the general public. We’ll then stitch these media assets together to create an expanded and continuous view of the total eclipse as it crosses the United States."
-          }
-        },
-        participateData: {
-          type: Object,
-          value: {
-            size: "medium",
-            color: "#0f9d58",
-            title: "How You Can Participate!",
-            body: "Will you be under the path of totality for the August 21, 2017 total solar eclipse? If so, we hope you can participate in the project! Sign in to enter your planned eclipse viewing location and your planned camera setup and more.",
-            signedInBody: "Will you be under the path of totality for the August 21, 2017 total solar eclipse? If so, we hope you can participate in the project! Go to your <a href='/profile'>profile </a> to update your planned eclipse viewing location and your planned camera setup and more."
-          }
-        },
         cardGoogle: {
           type: Object,
           value: {
@@ -266,11 +298,19 @@ limitations under the License.
           value: {
             image: "/images/collaborator2_Berkeley.png",
             title: "Multiverse Team",
-            body: "The Multiverse team headquartered at UC Berkeley’s Space Sciences Laboratory aims to increase diversity in the fields of earth and space science through multicultural education. By way of carefully crafted educational opportunities and resources, we seek to connect with people’s sense of wonder and help them make personal ties to science and the learning process."
+            body: "The Multiverse team headquartered at UC Berkeley’s Space Sciences Laboratory makes Earth and space science accessible through transformative educational experiences and vetted resources. Ultimately, we seek to connect with people’s sense of wonder and increase their personal ties to science."
           }
         },
         isSignedIn: {
           type: Boolean
+        },
+        partnerList: {
+          type: Array
+        },
+
+        movieId: {
+          type: String,
+          value: movie_id // comes from movie-id.js
         }
       },
 
@@ -297,6 +337,10 @@ limitations under the License.
             "url" : "https://www2.hao.ucar.edu/"
           },
           {
+            "title" : "Ideum",
+            "url" : "https://www.ideum.com/"
+          },
+          {
             "title" : "Lick Observatory",
             "url" : "https://www.ucolick.org/"
           },
@@ -305,31 +349,41 @@ limitations under the License.
             "url" : "http://www.ssl.berkeley.edu/"
           },
           {
+            "title" : "University of Colorado at Boulder",
+            "url" : "http://cires.colorado.edu/"
+          },
+          {
             "title" : "Williams College and the IAU Working Group",
             "url" : "http://sites.williams.edu/iau-eclipses/"
           }
         ];
-        this._updateParticipateBlock();
       },
 
       onSignIn: function() {
         this.isSignedIn = this.$.signin.signedIn;
-        this._updateParticipateBlock();
       },
 
       onSignOut: function() {
         this.isSignedIn = this.$.signin.signedIn;
-        this._updateParticipateBlock();
       },
 
-      _updateParticipateBlock: function() {
-        if (this.$.participateText && this.participateData) {
-          if (this.isSignedIn) {
-            this.$.participateText.body = this.participateData.signedInBody;
-          } else {
-            this.$.participateText.body = this.participateData.body;
-          }
+      deselected: function() {
+        this._pauseHeroIfPlaying();
+      },
+
+      _shouldShowVideoOverlay: function(state) {
+        return state == -1 || state == 0;
+      },
+
+      _pauseHeroIfPlaying: function() {
+        var video = this.$$("google-youtube[name=hero]");
+        if (video && video.state == 1) {
+          video.pause();
         }
+      },
+
+      _showPromoVideo: function(eclipseState) {
+        return eclipseState == this.PRE_ECLIPSE_DAY;
       }
     });
   </script>

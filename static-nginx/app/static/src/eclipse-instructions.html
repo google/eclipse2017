@@ -1,0 +1,249 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/google-youtube/google-youtube.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
+<link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
+<link rel="import" href="eclipse-section/eclipse-section.html">
+<link rel="import" href="eclipse-text-box/eclipse-text-box.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-instructions">
+  <template>
+    <style include="shared-styles">
+      :host {
+        @apply(--layout-vertical);
+      }
+
+      .instruction-holder {
+        @apply(--layout-flex);
+        background-color: #4481f8;
+        padding: 24px 36px;
+      }
+
+      .instruction-content {
+        @apply(--content-width);
+        @apply(--paper-font-body1);
+        max-width:800px;
+      }
+
+      a:hover {
+        text-decoration:underline;
+      }
+
+      a {
+        text-decoration:none;
+        color: var(--link-color, --paper-yellow-500);
+      }
+
+      h2 {
+        @apply(--paper-font-headline);
+      }
+
+      h3 {
+        @apply(--paper-font-subhead);
+        margin-top:24px;
+      }
+    </style>
+
+    <!-- Safety page content -->
+    <div id="main">
+      <div class="instruction-holder">
+        <div class="instruction-content">
+          <h2>Basic Eclipse Photo Instructions</h2>
+          <google-youtube
+              id="instructionvideo"
+              video-id="yKw69Zvs42Y"
+              controls="1"
+              modestbranding="1"
+              showinfo="0"
+              iv_load_policy="3"
+              rel="0"
+              fluid="true"
+              state="{{state}}"
+          ></google-youtube>
+          <ol>
+            <li><span class="header">Be sure you have the correct equipment</span>
+              <ol type="a">
+                <li>Camera: DSLR (digital single lens reflex, or mirrorless)</li>
+                <li>Telephoto or zoom lens: Most cameras need anywhere between 200-800mm You can <a href="http://multiverse.ssl.berkeley.edu/Eclipse/CamSpecCalc" target="_blank">calculate what size works best for your camera</a>.</li>
+                <li>A stable and level tripod</li>
+                <li><em>Optional</em> hardware
+                  <ol type="i">
+                    <li>remote trigger - if you don’t have one you can get by with the shutter timer</li>
+                    <li>Solar filter for your camera to take pictures before and after totality</li>
+                    <li>a level (or level app)</li>
+                    <li>A white cloth to keep your camera cool</li>
+                  </ol>
+                </li>
+                <li><em>Optional</em> software
+                  <ol type="i">
+                    <li>You don’t need to attach your camera to a computer, but many people do.
+                      If you’d like to be completely hands-free during totality, we recommend
+                      programs like the <a href="http://xjubier.free.fr/en/site_pages/solar_eclipses/Solar_Eclipse_Maestro_Photography_Software.html" target="_blank">Solar Eclipse Maestro (Mac OS X, free)</a>.</li>
+                  </ol>
+                </li>
+              </ol>
+            </li>
+            <li><span class="header">To do in advance</span>
+              <ol type="a">
+                <li>Calculate your ISO/shutter speed settings for totality and pick one that works
+                  for the low- to mid-corona. If you are bracketing (see step c below), center it on
+                  1.0Rs (mid corona). For single images, choose one between Corona 0.1Rs - 4.0Rs in
+                  this <a href="http://www.mreclipse.com/SEphoto/image/SE-Exposure1w.GIF" target="_blank">calculator</a>.</li>
+                <li>Get your camera’s time and time zone correct. If you have built in GPS, this should happen automatically.
+                  If not, you’ll need to set your camera’s clock to the second using a reliable time
+                  such as your phone or <a href="http://time.gov" target="_blank">time.gov.</a></li>
+                <li>Know how to auto-bracket photos and can take a burst of photos, see this page
+                  from <a href="https://digital-photography-school.com/automatic-exposure-bracketing-aeb/" target="_blank">Digital Photography School</a>:
+                  <ol type="i">
+                    <li>If your camera doesn’t have auto-bracketing, you can still bracket photos
+                      like <a href="http://www.wikihow.com/Bracket-Photos-in-a-Camera-Without-Auto-Bracketing" target="_blank">this</a>.</li>
+                    <li>Ideally, you will make an exposure bracket of 3 to 4 photographs with shutter
+                      speeds such that you capture an image ideal for 0.1Rs corona (bright), 0.5Rs
+                      corona (bright), 2.0Rs corona (medium bright) and 4.0Rs corona (dim) as
+                      described in 2a above.</li>
+                  </ol>
+                </li>
+                <li>Determine the timing of the eclipse for your location (2nd and 3rd contact are
+                  most important here) with this <a href="http://xjubier.free.fr/en/site_pages/solar_eclipses/TSE_2017_GoogleMapFull.html" target="_blank">interactive map</a>.
+                </li>
+                <li>Make sure you have selected your camera’s best quality JPEG or RAW settings.
+                  Your camera's JPEG+RAW setting may result in more time between shots. High quality
+                  and high resolution JPEG files are fine for use in the Megamovie project.</li>
+                <li>Build yourself a solar finder in order to determine the approximate position of the Sun.
+                  <ol type="i">
+                    <li>We recommend building the Heliopod and attaching it on your lens, #7 in the
+                      <a href="http://www.dd1us.de/Downloads/a%20collection%20of%20solar%20finder%20designs%200v6.pdf" target="_blank">following PDF</a>.</li>
+                    <li><a href="https://www.youtube.com/watch?v=MnuXBG1mpIs" target="_blank">How to use a Heliopod video</a></li>
+                  </ol>
+                </li>
+              </ol>
+            </li>
+            <li><span class="header">Eclipse day preparation - August 21</span>
+              <ol type="a">
+                <li>Set timer to alert you 5 minutes before totality</li>
+                <li>Determine the approximate position of the Sun at totality using your solar finder or smartphone app.
+                  <ol type="i">
+                    <li><em>(Never look directly at the sun through an unfiltered camera’s optical
+                      viewfinder, even if you are wearing solar glasses, because a
+                      telephoto lens will magnify the brightness of the image)</em></li>
+                  </ol>
+                <li>There are also some free apps like The Star Map App
+                  (<a href="https://play.google.com/store/apps/details?id=com.google.android.stardroid&hl=en&e=-EnableAppDetailsPageRedesign" target="_blank">Android</a>, <a href="https://itunes.apple.com/us/app/star-chart/id345542655?mt=8" target="_blank">iOS</a>)
+                  that let you set the time and location and see where the sun will be in the sky
+                  or see <a href="http://xjubier.free.fr/en/site_pages/solar_eclipses/TSE_2017_GoogleMapFull.html">the interactive map</a>.</li>
+                <li>Level your tripod using the level function in your phone or a physical bubble level.</li>
+                <li>Make sure you have a memory card with enough space and freshly charged batteries</li>
+                <li>Turn off any image stabilization/vibration reduction features</li>
+                <li><strong>Disable the flash!</strong></li>
+                <li>You’ll need to determine your GPS location and you have options:
+                  <ol type="i">
+                    <li>If your camera has GPS or external GPS dongle, just make sure it’s turned
+                      on and you’re set.</li>
+                    <li>Take a picture with your phone (with geotags turned on) and include this
+                      photo when uploading your images. Make sure your camera time and timezone are synchronized with your phone.</li>
+                    <li>For more information, see this <a href="https://www.bhphotovideo.com/explora/photography/tips-and-solutions/how-geo-tag-your-photos" target="_blank">B&H Photo article</a></li>
+                  </ol>
+                </li>
+                <li>Set the recommended shutter speed, as calculated in step 2a above and set camera to auto bracket
+                  <ol type="i">
+                    <li>Put camera in manual and set for a range of exposures that bracket the
+                      exposure of interest. Configure your camera with under- to over-exposure,
+                      3-photo bracketing. Choose automatic or set to 1.0 bracket level.</li>
+                  </ol>
+                </li>
+                <li>
+                  Finally, set up your camera to take a burst of shots or in continuous shooting
+                  mode so it takes multiple images without needing attention. You camera’s manual
+                  or website will show you how to do this, or see
+                  <a href="https://digital-photography-school.com/how-to-use-continuos-shooting-mode-on-a-digital-camera/" target="_blank">this article from Digital Photography School</a>.
+                </li>
+                <li>Attach your zoom lens with solar filter</li>
+                <li>Turn off Autofocus, then:
+                  <ol type="i">
+                    <li>Focus either on infinity or on the most distant object you can see (not the sun!)</li>
+                    <li>Use digital display, focus on distant image, zoom in the display and make sure distant object is in focus</li>
+                    <li>Lock the focus. Some people recommend taping the focus in place</li>
+                  </ol>
+                </li>
+                <li><strong>Once again, please turn off the flash.</strong> (If you have a
+                  stationary flash, you can cover with black tape. But do <em>not</em> cover pop-up flashes
+                  with tape as that can cause your camera to report an error and stop taking pictures.</li>
+                <li>Connect remote trigger or enable your wireless trigger. Make sure the trigger
+                  has batteries, too! If you don’t have a trigger, you may want to use the
+                  timer / delayed photo feature to minimize image shaking.</li>
+                <li>Put the camera on the tripod. Double check the level.</li>
+                <li>Cover camera with a white cloth to keep cool</li>
+              </ol>
+            </li>
+            <li><span class="header">Taking images at totality</span>
+              <ol type="a">
+                <li>Minutes before totality, point the camera towards the Sun if not already imaging
+                <em>(Again, never look directly at the sun through an unfiltered camera’s optical
+                  viewfinder, even if you are wearing solar glasses, because a telephoto lens will magnify
+                  the brightness of the image)</em>
+                </li>
+                <li>At totality, remove solar filter or other covering</li>
+                <li>Snap as many bracketed bursts or continuous shots as you like (1 is fine, 10 are great too!)</li>
+              </ol>
+            </li>
+            <li><span class="header">Submitting photos</span>
+              <ol type="a">
+                <li>Please upload photos as soon as possible on the <a href="/profile">profile page</a>.</li>
+                <li>We are only looking for photos of the totally eclipsed Sun or images with
+                  <a href="https://en.wikipedia.org/wiki/Baily%27s_beads" target="_blank">Baily’s Beads</a></li>
+                <li>If possible, don’t make any edits to the photos before uploading them (note
+                  that some applications make edits / change metadata automatically). - Just
+                  upload them directly to the site to preserve their original format. If you’re
+                  using image processing software before upload, please make a copy of the images
+                  for your own processing and use.</li>
+                <li>The upload page will be available until September 4th. Please upload by then
+                if you want your participation certificate to reflect all your contributions.</li>
+              </ol>
+            </li>
+          </ol>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-instructions',
+      behaviors: [EclipseBehaviors.ScrollToAnchorBehavior],
+
+      properties: {
+      },
+
+      deselected: function() {
+        this._pauseVideoIfPlaying();
+      },
+
+      _pauseVideoIfPlaying: function() {
+        var video = this.$.instructionvideo;
+        if (video && video.state == 1) {
+          video.pause();
+        }
+      },
+    });
+  </script>
+</dom-module>

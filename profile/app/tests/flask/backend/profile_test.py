@@ -17,12 +17,12 @@ import json
 import unittest2
 
 from app.backend.eclipse2017_app import Eclipse2017App
-from gcloud import datastore
+from google.cloud import datastore
 
 from common import config
 from common import secret_keys as sk
-from common.users import Users
-from common.roles import Roles
+from common import users
+from common import roles
 
 from common import test_common
 from common import util
@@ -34,33 +34,32 @@ class ProfileTests(unittest2.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(ProfileTests, self).__init__(*args, **kwargs)
-        self.users = Users()
         USER = '1'
         self.USER = USER
         USER2 = '2'
         self.USER2 = USER2
-        self.USER_HASH = self.users.get_userid_hash(self.USER)
-        self.USER2_HASH = self.users.get_userid_hash(self.USER2)
+        self.USER_HASH = users.get_userid_hash(self.USER)
+        self.USER2_HASH = users.get_userid_hash(self.USER2)
 
         # Fake user idtoken verifier
-        class client:
+        class id_token:
             def __init__(self):
                 pass
-            def verify_id_token(self, token, client_id):
+            def verify_token(self, token, _):
                 return { 'iss': 'accounts.google.com',
                          'sub': USER}
 
         # Fake user idtoken verifier
-        class user2_client:
+        class id_token2:
             def __init__(self):
                 pass
-            def verify_id_token(self, token, client_id):
+            def verify_token(self, token, _):
                 return { 'iss': 'accounts.google.com',
                          'sub': USER2}
 
-        self.client = client()
-        self.user2_client = user2_client()
-        util.client = self.client
+        self.id_token = id_token()
+        self.id_token2 = id_token2()
+        util.id_token = self.id_token
 
         self.HEADERS={'Content-type': 'application/json',
                       'X-IDTOKEN': USER}
@@ -75,7 +74,6 @@ class ProfileTests(unittest2.TestCase):
         if 'prod' in config.PROJECT_ID:
             raise RuntimeError('Cowardly refusing to delete prod datastore')
         self.datastore_client = datastore.Client(config.PROJECT_ID)
-        self.roles = Roles()
         test_common._clear_data(self.datastore_client)
 
     def _get_root(self, headers=None, expected_status=200):
@@ -133,16 +131,16 @@ class ProfileTests(unittest2.TestCase):
         self._get_user(self.USER_HASH, headers={}, expected_status=405)
 
     def test_get_user_wronguser(self):
-        test_common._set_user_roles(self.roles, self.datastore_client, self.USER2_HASH, ['user'])
+        test_common._set_user_roles(roles, self.datastore_client, self.USER2_HASH, ['user'])
         # We'd prefer to do this with headers, but the fake id token verifier
         # gets in the way.
-        util.client = self.user2_client
+        util.id_token = self.id_token2
         try:
             # Other user cannot access user's profile
             self._get_user(self.USER_HASH, expected_status=403)
         finally:
             # Have to always clean up the monkey patch.
-            util.client = self.client
+            util.id_token = self.id_token
 
     def test_put_user(self):
         data = {"email": "test@example.com"}

@@ -15,6 +15,7 @@ limitations under the License.
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/google-signin/google-signin-aware.html">
 <link rel="import" href="../behaviors/eclipse-debug-logger.html">
 <script type="text/javascript" src="../../bower_components/js-sha256/src/sha256.js"></script>
 
@@ -39,6 +40,7 @@ limitations under the License.
         handle-as="json"
         on-response="_handleResponse"
         on-error="_handleError"
+        loading="{{loading}}"
         debounce-duration="300"></iron-ajax>
     <iron-ajax
         id="profileEdit"
@@ -88,9 +90,36 @@ limitations under the License.
             notify:true
           },
 
+          geocodedLocation : {
+            type: Array,
+            readOnly: true,
+            notify:true
+          },
+
           camera : {
             type: String,
             readOnly: true
+          },
+
+          roles : {
+            type: Array,
+            readOnly: true
+          },
+
+          badges : {
+            type: Array,
+            readOnly: true,
+            notify:true
+          },
+
+          loading : {
+            type: Boolean,
+            notify:true
+          },
+
+          error : {
+            type: Boolean,
+            notify: true
           }
         },
 
@@ -114,6 +143,23 @@ limitations under the License.
           this.$.signin.signOut();
         },
 
+        disconnect: function() {
+          if (this.user) {
+            this.user.disconnect();
+          }
+          this.$.signin.signOut();
+        },
+
+        refresh: function() {
+          if (this.user) {
+            var cache = this.user;
+            this.user = null;
+            this.user = cache;
+          } else {
+            this.user = gapi.auth2.getAuthInstance()['currentUser'].get();
+          }
+        },
+
         _handleSignin: function() {
           this.consoleLogIfAble("signing in");
           this.user = gapi.auth2.getAuthInstance()['currentUser'].get();
@@ -126,8 +172,10 @@ limitations under the License.
           this._setName(null);
           this._setEmail(null);
           this._setLocation(null);
-          this._setLocation(null);
+          this._setGeocodedLocation(null);
           this._setCamera(null);
+          this._setRoles(null);
+          this._setBadges(null);
           this.fire('user-service-ready', {});
         },
 
@@ -171,10 +219,27 @@ limitations under the License.
             this._setName(response.detail.response.name);
             this._setEmail(response.detail.response.email);
             this._setLocation(response.detail.response.location);
+            this._setGeocodedLocation(response.detail.response.geocoded_location);
             this._setCamera(response.detail.response.camera);
+            this._setRoles(response.detail.response.roles);
+            this._setBadges(this._getBadges(response.detail.response.badges));
             this._setExists(true);
+            this.error = false;
+          } else {
+            // Got 200 but no response there.
+            this.error = true;
           }
           this.fire('user-service-ready', {});
+        },
+
+        _getBadges: function(badgeArray) {
+          badgeArray = badgeArray ? badgeArray : [];
+
+          var isVolunteer = false;
+          if (this.roles && this.roles.includes("volunteer")) {
+            badgeArray.push("volunteer");
+          }
+          return badgeArray;
         },
 
         _handleError: function(response) {
@@ -186,6 +251,13 @@ limitations under the License.
             var profile = this.user.getBasicProfile();
             this._setName(profile.getName());
             this._setEmail(profile.getEmail());
+            this._setRoles([]);
+            this._setBadges([]);
+            // Not really an error in this case.
+            this.error = false;
+          } else {
+            // These are true errors.
+            this.error = true;
           }
           this.fire('user-service-ready', {});
         },
@@ -193,6 +265,7 @@ limitations under the License.
         _handleEditResponse: function(response) {
           if (response.target.method == "PUT" || response.target.method == "UPDATE") {
             // Reload with the new data.
+            this.$.profileRequest.headers["X-IDTOKEN"] = this.user.getAuthResponse().id_token;
             this.$.profileRequest.generateRequest();
           }
         },

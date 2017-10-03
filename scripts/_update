@@ -24,7 +24,7 @@ if [[ $LOCAL_DEV != true ]]; then
   fi
 
   GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
-  kubectl set image deployment/$APP $APP=$GCR_PREFIX/$APP:$GIT_TAG
+  kubectl set image deployment/$DEPLOYMENT $APP=$GCR_PREFIX/$APP:$GIT_TAG
 fi
 
 echo "Done updating."

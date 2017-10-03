@@ -1,0 +1,88 @@
+<!--
+@license
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<script>
+  EclipseBehaviors = window.EclipseBehaviors || {};
+
+  /**
+   * @polymerBehavior
+   */
+  EclipseBehaviors.DateAwareBehavior = {
+
+    UNSET: 0,
+    PRE_ECLIPSE_DAY: 1,
+    ECLIPSE_DAY: 2,
+    POST_ECLIPSE_DAY: 3,
+
+    ECLIPSE_DATE: new Date(2017, 7, 21),
+
+    properties: {
+      queryParams: {
+        type: Object
+      },
+
+      eclipseState: {
+        type: Boolean,
+        computed: '_getEclipseState(queryParams, DEBUG_STATE)'
+      },
+
+      DEBUG_STATE: {
+        type: Number,
+        value: 0
+      }
+    },
+
+    observers: [
+      '_updateOverrides(queryParams)'
+    ],
+
+    _updateOverrides: function(queryParams) {
+      if (queryParams.test_eclipse) {
+        this.DEBUG_STATE = this.ECLIPSE_DAY;
+      }
+      if (queryParams.test_post_eclipse) {
+        this.DEBUG_STATE = this.POST_ECLIPSE_DAY;
+      }
+    },
+
+    _getEclipseState: function() {
+      if (this.DEBUG_STATE) {
+        return this.DEBUG_STATE;
+      }
+      return this._getEclipseStateFromDate(new Date());
+    },
+
+    _getEclipseStateFromDate: function(date) {
+      if (this._isAug21(date)) {
+        return this.ECLIPSE_DAY;
+      } else if (this._isPostAug21(date)) {
+        return this.POST_ECLIPSE_DAY;
+      } else {
+        return this.PRE_ECLIPSE_DAY;
+      }
+    },
+
+    _isAug21: function(date) {
+      return (date.getFullYear() == this.ECLIPSE_DATE.getFullYear()
+          && date.getMonth() == this.ECLIPSE_DATE.getMonth()
+          && date.getDate() == this.ECLIPSE_DATE.getDate());
+    },
+
+    _isPostAug21: function(date) {
+       return (date.getTime() - this.ECLIPSE_DATE.getTime()) > 0
+    }
+  }
+</script>

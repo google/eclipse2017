@@ -1,4 +1,5 @@
 <!--
+@license
 Copyright 2017 Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 
@@ -14,9 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <script>
-  window.EclipseBehaviors = window.EclipseBehaviors || {};
+  EclipseBehaviors = window.EclipseBehaviors || {};
 
-  window.EclipseBehaviors.DebugLoggerBehavior = {
+  /**
+   * @polymerBehavior
+   */
+  EclipseBehaviors.DebugLoggerBehavior = {
     // Do not check in this file with debug flags set to true
     properties: {
       LOCAL_DEBUG: {

@@ -15,6 +15,7 @@ limitations under the License.
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/google-signin/google-signin-aware.html">
 <link rel="import" href="../behaviors/eclipse-debug-logger.html">
 <script type="text/javascript" src="../../bower_components/js-sha256/src/sha256.js"></script>
 <script src="../client-id.js"></script>
@@ -31,20 +32,44 @@ limitations under the License.
                          on-google-signin-aware-signed-out="_handleSignout">
     </google-signin-aware>
     <iron-ajax
+        path="users/count/"
         id="adminRequestCount"
         auto
         params='{}'
         handle-as="json"
         on-response="_handleCountResponse"
         on-error="_handleError"
+        loading="{{userCountLoading}}"
         debounce-duration="300"></iron-ajax>
     <iron-ajax
+        path="clusters/users"
         id="adminRequestLocations"
         auto
         params='{}'
         handle-as="json"
-        on-response="_handleLocationResponse"
+        on-response="_handleUserLocationResponse"
         on-error="_handleError"
+        loading="{{userLocationLoading}}"
+        debounce-duration="300"></iron-ajax>
+    <iron-ajax
+        path="clusters/photos"
+        id="adminRequestPhotos"
+        auto
+        params='{{_getPhotoClusterParams(locationIncludeTeramovie)}}'
+        handle-as="json"
+        on-response="_handlePhotoLocationResponse"
+        on-error="_handleError"
+        loading="{{photoLocationLoading}}"
+        debounce-duration="300"></iron-ajax>
+    <iron-ajax
+        path="photos/count/"
+        id="adminRequestPhotoCount"
+        auto
+        params='{}'
+        handle-as="json"
+        on-response="_handlePhotoCountResponse"
+        on-error="_handleError"
+        loading="{{photoCountLoading}}"
         debounce-duration="300"></iron-ajax>
   </template>
   <script>
@@ -65,10 +90,45 @@ limitations under the License.
             readOnly: true
           },
           userCount: {
-            type: Number,
+            type: Object,
             notify: true,
-            value: 0,
             readOnly: true
+          },
+          userLocations: {
+            type: Array,
+            notify: true
+          },
+          photoLocations: {
+            type: Array,
+            notify: true
+          },
+          photoCount: {
+            type: Object,
+            notify: true,
+            readOnly: true
+          },
+          userCountLoading: {
+            type: Boolean,
+            notify: true
+          },
+          userLocationLoading: {
+            type: Boolean,
+            notify: true
+          },
+          photoCountLoading: {
+            type: Boolean,
+            notify: true
+          },
+          error: {
+            type: Boolean,
+            notify: true
+          },
+          loading: {
+            type: Boolean,
+            computed: '_isLoading(userCountLoading, userLocationLoading, photoCountLoading)'
+          },
+          locationIncludeTeramovie: {
+            type: Boolean
           }
         },
 
@@ -79,6 +139,22 @@ limitations under the License.
         ready: function() {
           var signin = this.$$("#signin");
           signin.setAttribute("client-id", client_id);
+          if (signin.signedIn) {
+            this.user = gapi.auth2.getAuthInstance()['currentUser'].get();
+          }
+        },
+
+        refresh: function() {
+          var requestEndpoints = Polymer.dom(this.root).querySelectorAll("iron-ajax");
+          if (this.user) {
+            var token = this.user.getAuthResponse().id_token;
+            var results = Promise.all(requestEndpoints.map(function(request) {
+              request.headers["X-IDTOKEN"] = token;
+              return request.generateRequest().completes;
+            }));
+            return results;
+          }
+          return Promise.resolve('No user');
         },
 
         _handleSignin: function() {
@@ -92,26 +168,35 @@ limitations under the License.
         },
 
         _onUserChanged: function(user) {
+          var requestEndpoints = Polymer.dom(this.root).querySelectorAll("iron-ajax");
           if (user) {
             var token = user.getAuthResponse().id_token;
-            this.$.adminRequestCount.headers["X-IDTOKEN"] = token;
-            this.$.adminRequestCount.url = this._getEndpointUrl("count");
-            this.$.adminRequestLocations.headers["X-IDTOKEN"] = token;
-            this.$.adminRequestLocations.url = this._getEndpointUrl("locations");
+            requestEndpoints.forEach(function(request) {
+              request.headers["X-IDTOKEN"] = token;
+              request.url = this._getEndpointUrl(request.getAttribute("path"));
+            }.bind(this));
           } else {
-            this.$.adminRequestCount.headers["X-IDTOKEN"] = token;
-            this.$.adminRequestCount.url = null;
-            this.$.adminRequestLocations.headers["X-IDTOKEN"] = null;
-            this.$.adminRequestLocations.url = null;
+            requestEndpoints.forEach(function(request) {
+              request.headers["X-IDTOKEN"] = null;
+              request.url = null;
+            }.bind(this));
           }
         },
 
         _getEndpointUrl: function(location) {
-          var url = "/services/admin/users/";
+          var url = "/services/admin/";
           if (this.LOCAL_DEBUG) {
             url = "https://localhost" + url;
           }
-          return url + location + "/";
+          return url + location;
+        },
+
+        _getPhotoClusterParams: function(includeTeramovie) {
+          if (includeTeramovie) {
+            return {image_buckets: "megamovie,teramovie"};
+          } else {
+            return {image_buckets: "megamovie"};
+          }
         },
 
         _handleCountResponse: function(response) {
@@ -119,23 +204,49 @@ limitations under the License.
           if (response.detail.response) {
             this._setUserCount(response.detail.response);
             this._setAdmin(true);
+            this.error = false;
           }
         },
 
-        _handleLocationResponse: function(response) {
-          this.consoleLogIfAble("Got location response " + response.detail.status);
+        _handleUserLocationResponse: function(response) {
+          this.consoleLogIfAble("Got user location response " + response.detail.status);
           if (response.detail.response) {
-
+            this.userLocations = response.detail.response;
             this._setAdmin(true);
+            this.error = false;
+          }
+        },
+
+        _handlePhotoLocationResponse: function(response) {
+          this.consoleLogIfAble("Got photo location response " + response.detail.status);
+          if (response.detail.response) {
+            this.photoLocations = response.detail.response;
+            this._setAdmin(true);
+            this.error = false;
+          }
+        },
+
+        _handlePhotoCountResponse: function(response) {
+          this.consoleLogIfAble("Got count response " + response.detail.status);
+          if (response.detail.response) {
+            this._setPhotoCount(response.detail.response);
+            this._setAdmin(true);
+            this.error = false;
           }
         },
 
         _handleError: function(response) {
           this.consoleLogIfAble("Got error response " + response.detail.request);
-          if (response.detail.request && response.detail.request.status != 200) {
+          if (response.detail.request && response.detail.request.status == 401) {
             // User doesn't have admin role.
             this._setAdmin(false);
           }
+          this.error = true;
+        },
+
+        _isLoading: function(userCountLoading, userLocationLoading, photoCountLoading) {
+          this.consoleLogIfAble("Checking loading: " + userCountLoading + "," + userLocationLoading + "," + photoCountLoading);
+          return userCountLoading || userLocationLoading || photoCountLoading;
         }
       });
     </script>

@@ -16,7 +16,7 @@
 """Print list of users (debug tool)."""
 
 import argparse
-from gcloud import datastore
+from google.cloud import datastore
 import common.service_account as sa
 
 DEFAULT_PROJECT = 'eclipse-2017-test-147301'
@@ -29,14 +29,15 @@ def get_arguments():
 def main():
     args  = get_arguments()
 
-    credentials = sa.get_credentials()
-    client = datastore.Client(project=args.project_id, credentials=credentials)
+    client = datastore.Client(project=args.project_id)
 
     query = client.query(kind="User")
-    query.keys_only()
+
     entities = query.fetch()
     for entity in entities:
         print "User id (hashed):", entity.key.name
+        if 'badges' in entity:
+            print "Badges ", entity['badges']
         key = client.key("UserRole", entity.key.name)
         entity = client.get(key)
         print "\troles:", entity['roles']

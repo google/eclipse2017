@@ -14,19 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-$PROJ_DIR/scripts/_build
-$PROJ_DIR/scripts/_push
+set -e
+echo "System testing..."
 
-# Upload server stress tests
-echo "Running upload server stress tests..."
-python $PROJ_DIR/upload/system_tests/runtests.py
-UPLOAD_STRESS_PASS=$?
-
-# Final result
-echo
-test $UPLOAD_STRESS_PASS -eq 0
-if [ $? == 0 ]; then
-    echo "ALL TESTS PASSED"
+if [ "$LOCAL_DEV" != "true" ]; then
+    kubectl apply -f build/system-test-container/test_pod.yaml --record
 else
-    echo "SOME TEST(S) FAILED"
+  GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
+  LINK="--link profile-nginx --link admin-nginx --link static-nginx"
+  docker run -ti --link static-nginx --name system-test ${GCR_PREFIX}/system-test-container
 fi

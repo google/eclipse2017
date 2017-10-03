@@ -27,7 +27,7 @@ from werkzeug.urls import url_encode
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = constants.SERVICE_ACCOUNT_PATH
 
-logging.basicConfig(level=logging.DEBUG, format=constants.LOG_FMT_S_THREADED)
+logging.basicConfig(level=logging.INFO, format=constants.LOG_FMT_S_THREADED)
 
 app = Eclipse2017App(config.PROJECT_ID, sk.FLASK_SESSION_ENC_KEY,
                      sk.GOOGLE_OAUTH2_CLIENT_ID,

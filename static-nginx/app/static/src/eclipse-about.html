@@ -17,6 +17,7 @@ limitations under the License.
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
 <link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
 <link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
 <link rel="import" href="eclipse-section/eclipse-section.html">
@@ -58,6 +59,7 @@ limitations under the License.
       }
     </style>
 
+    <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
     <!-- Eclipse About page content -->
     <div id="about">
       <eclipse-section size="{{whatData.size}}" color="{{whatData.color}}">
@@ -73,7 +75,7 @@ limitations under the License.
       </eclipse-section>
       <eclipse-section class="where-section" size="{{whereData.size}}" color="{{whereData.color}}">
         <img src="/images/02_Eclipse_03.svg"/>
-        <eclipse-text-box class="where-box" title="{{whereData.title}}" body="{{whereData.body}}" bg="{{whereData.textBackground}}" has-links-in-body="true">
+        <eclipse-text-box class="where-box" title="{{whereData.title}}" body="{{whereData.body}}" has-links-in-body="true">
         </eclipse-text-box>
       </eclipse-section>
     </div>
@@ -92,7 +94,7 @@ limitations under the License.
             size: "large",
             color: "#000",
             title: "What's a solar eclipse?",
-            body: "The August 21, 2017 total solar eclipse will be the first to cross a large portion of the United States in almost 40 years. Solar eclipses occur when the Moon comes between the Sun and the Earth, blocking the light of the Sun and casting a shadow on the Earth. The Moon looks almost exactly the same size as the Sun in the sky. This similarity is coincidental! The Sun is 400 times wider than the Moon but it is also 400 times further away, so the two cover the same sized area from our point of view on Earth. For a visual interpretation, see these <a href='http://svs.gsfc.nasa.gov/cgi-bin/details.cgi?aid=4324' target='_blank'>NASA animations</a>. For more detailed information about the 2017 total solar eclipse, visit our [Resources page](/resources)."
+            body: "The August 21, 2017 total solar eclipse was the first to cross a large portion of the United States since 1918. Solar eclipses occur when the Moon comes between the Sun and the Earth, blocking the light of the Sun and casting a shadow on the Earth. The Moon looks almost exactly the same size as the Sun in the sky. This similarity is coincidental! The Sun is 400 times wider than the Moon but it is also 400 times further away, so the two cover the same sized area from our point of view on Earth. For a visual interpretation, see these <a href='http://svs.gsfc.nasa.gov/cgi-bin/details.cgi?aid=4324' target='_blank'>NASA animations</a>. For more detailed information about the 2017 total solar eclipse, visit our [Resources page](/resources)."
           }
         },
         sunData: {
@@ -109,11 +111,12 @@ limitations under the License.
           value: {
             size: "medium",
             color: "#0f9d58",
-            title: "Where to watch",
-            body: "We hope you will join us on August 21, 2017, and learn how to take photographs of a total solar eclipse safely and with good enough resolution to contribute to the Eclipse Megamovie Project. This event provides a fantastic opportunity for everyone to learn more about our closest star, the Sun. You can also explore the Moon and Earth orbits that make total solar eclipses possible. Ready to plan your own eclipse viewing excursion? We recommend using <a href='http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html' target='_blank'>NASA’s interactive map</a> in order to more precisely determine your personal optimal viewing location."
+            title: "The eclipse path",
+            body: "This total solar eclipse presented a unique opportunity for both observation and scientific research. It is very rare that the path of a total solar eclipse is visible from land for so long. Since our planet’s surface is roughly 71% water, many eclipses occur mostly over water, which makes viewing them difficult. This eclipse allowed many to experience a total solar eclipse and provided valuable opportunities for scientific study."
           }
         }
       }
+
     });
   </script>
 </dom-module>

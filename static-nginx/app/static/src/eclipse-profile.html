@@ -17,21 +17,19 @@ limitations under the License.
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../bower_components/paper-card/paper-card.html">
-<link rel="import" href="../bower_components/paper-autocomplete/paper-autocomplete.html">
 <link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
-<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
-<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/google-signin/google-signin.html">
 <link rel="import" href="behaviors/eclipse-debug-logger.html">
 <link rel="import" href="eclipse-form-section/eclipse-form-section.html">
-<link rel="import" href="eclipse-location-map/eclipse-location-map.html">
-<link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
 <link rel="import" href="eclipse-section/eclipse-section.html">
 <link rel="import" href="eclipse-text-box/eclipse-text-box.html">
+<link rel="import" href="eclipse-certificate.html">
 <link rel="import" href="shared-styles.html">
-<script src="upload.js"></script>
+<script src="array-includes-polyfill.js"></script>
+<script src="string-endswith-polyfill.js"></script>
 <script src="client-id.js"></script>
 
 <dom-module id="eclipse-profile">
@@ -40,16 +38,15 @@ limitations under the License.
       :host {
         @apply(--layout-vertical);
         @apply(--content-width);
-        min-height:calc(100vh - 180px);
+        @apply(--layout-flex);
         max-width:800px;
       }
 
-      #profile, #advanced, #apply, #signinprompt {
+      #profile, #apply, #volunteer, #signinprompt, #certificate {
         @apply(--layout-vertical);
-        padding: 0 24px;
       }
 
-      #apply {
+      #apply, #volunteer {
         margin: 8px 0;
       }
 
@@ -83,7 +80,6 @@ limitations under the License.
       google-signin {
         @apply(--layout-self-end);
         margin-top:24px;
-        margin-right:24px;
         margin-bottom:8px;
       }
 
@@ -135,13 +131,14 @@ limitations under the License.
         @apply(--layout-center-justified);
       }
 
-      #apply-card {
+      .section-card  {
         color: var(--paper-grey-800);
-        padding:16px;
         @apply(--layout-vertical);
+        @apply(--paper-font-body1);
+        padding:16px;
       }
 
-      .participate {
+      .section-card-header {
         margin-right:16px;
         @apply(--paper-font-subhead);
       }
@@ -152,7 +149,7 @@ limitations under the License.
          background-repeat: no-repeat;
          background-color: #3f87ff;
          background-size: auto 130%;
-         margin: 8px 24px;
+         margin: 8px 0px;
          min-height: 205px;
          @apply(--paper-font-display1);
          @apply(--layout-center);
@@ -165,8 +162,8 @@ limitations under the License.
         white-space:normal;
       }
 
-      #locationField {
-        margin-bottom:8px;
+      #noprofile, #signinprompt {
+        margin: 8px 0px;
       }
 
       h4 {
@@ -197,10 +194,6 @@ limitations under the License.
         text-decoration:none;
       }
 
-      #apply-card {
-        @apply(--paper-font-body1);
-      }
-
       div[disabled] {
         color: var(--paper-grey-400);
       }
@@ -216,8 +209,18 @@ limitations under the License.
         margin-bottom:16px;
       }
 
+      #admin-card {
+        padding: 16px 16px;
+        margin: 0 24px;
+        @apply(--layout-vertical);
+      }
+
+      #admin-card a {
+        display: block;
+      }
+
       @media all and (min-width:600px) {
-        #apply-card {
+        .section-card {
           @apply(--layout-horizontal);
         }
 
@@ -237,6 +240,8 @@ limitations under the License.
       }
     </style>
 
+    <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
+
     <google-signin
         id="signin"
         scopes="profile"
@@ -245,133 +250,81 @@ limitations under the License.
         hidden$="{{!signedIn}}"
     ></google-signin>
 
-    <div id="profile-banner">
-      <div>Participate in Eclipse&nbsp;2017</div>
-    </div>
+    <template is="dom-if" if="{{!_hasBadges(signedIn, userService.roles, userService.badges)}}">
+      <div id="profile-banner">
+        <div>[[greeting]]</div>
+      </div>
+    </template>
+
+    <template is="dom-if" if="{{!userService.exists}}">
+      <div id="noprofile">
+        <paper-card class="section-card">
+          Thank you for your interest in the Eclipse Megamovie. We are no longer accepting uploads.
+        </paper-card>
+      </div>
+    </template>
+
+    <template is="dom-if" if="{{_hasBadges(signedIn, userService.roles, userService.badges)}}">
+      <paper-card id="certificate">
+        <eclipse-certificate name="[[userService.name]]" badges="[[userService.badges]]"></eclipse-certificate>
+      </paper-card>
+    </template>
 
     <!-- Eclipse profile page content -->
-    <div id="profile" hidden$="{{!signedIn}}">
+    <div id="profile" hidden$="{{!userService.exists}}">
 
-      <eclipse-form-section id="profileSection" label="Profile" summary="{{_getProfileSummary(userService.email, userService.name)}}" on-form-save="_handleFormSave" save-label="{{_getProfileSaveLabel(userService.exists)}}">
-        <div class="input-section name-section">
-          <div class="name-line"><span class="fieldlabel">Name:</span><span class="fieldvalue">[[userService.name]]</span></div>
-          <div><span class="fieldlabel">Email:</span><span class="fieldvalue">[[userService.email]]</span></div>
-          <div class="moreinfo">This is the name and email address from your <a href="https://myaccount.google.com/privacy?pli=1#personalinfo" target="_blank">Google Account</a>.</div>
-          <div class="newsletter-header">Newsletter: <a href="https://groups.google.com/a/lists.berkeley.edu/forum/#!forum/eclipse" target="_blank">Join the UC Berkeley Eclipse Megamovie Google Group</a></div>
-          <div class="newsletter-caption">To get email notifications about the eclipse and updates to this site.</div>
-        </div>
-      </eclipse-form-section>
-
-      <eclipse-form-section label="Location" summary="{{location}}"
-                            has-secondary-summary="true"
-                            secondary-summary="{{_getTotalityString(totality)}}"
-                            disabled="{{!markerVisible}}"
-                            on-form-save="_handleFormSave"
-                            >
-        <div class="input-section">
-          <eclipse-location-map id="locationMap" location="{{location}}"
-                                totality="{{totality}}" marker-visible="{{markerVisible}}"></eclipse-location-map>
-        </div>
-      </eclipse-form-section>
-
-      <eclipse-form-section label="Camera" summary="{{_getCameraSummary(userService.camera)}}" on-form-save="_handleFormSave" save-label="Save">
-        <div class="input-section">
-          <paper-radio-group id="cameraField" label="Camera_Type" selected="[[userService.camera]]">
-            <paper-radio-button name="dslr_gps">
-              <div class="camera-option">
-                <div class="img-holder"><img src="/images/camera_gps-01.png"/></div>
-                <div class="camera-text">
-                  <h4>DSLR + GPS (recommended)</h4>
-                  <div class="camera-option">A DSLR camera such as a Canon or Nikon with a telephoto lens and tripod. Also an attached GPS module that tags images with GPS and timestamps them when they are taken.</div>
-                </div>
-              </div>
-            </paper-radio-button>
-            <paper-radio-button name="dslr_smartphone">
-              <div class="camera-option">
-                <div class="img-holder">
-                  <img src="/images/camera_only-01.png"/>
-                  <img src="/images/camera_only-04.png"/>
-                </div>
-                <div class="camera-text">
-                  <h4>DSLR + Smartphone</h4>
-                  <div class="camera-option">A DSLR camera with a telephoto lens and tripod. If you don't have a GPS module in your camera, you can synchronize your camera clock with your smartphone and use your phone to take one reference picture with embedded location and time.</div>
-                </div>
-              </div>
-            </paper-radio-button>
-            <paper-radio-button name="smartphone">
-              <div class="camera-option">
-                <div class="img-holder">
-                  <img src="/images/camera_only-06.png"/>
-                </div>
-                <div class="camera-text">
-                  <h4>Smartphone</h4>
-                  <div class="camera-option">Android or iOS smartphone. You may want to add an aftermarket zoom lens to your phone to take better eclipse photos.</div>
-                </div>
-              </div>
-            </paper-radio-button>
-            <paper-radio-button name="other">
-              <div class="camera-option">
-                <div class="img-holder">
-                  <img src="/images/camera_only-05.png"/>
-                </div>
-                <div class="camera-text">
-                  <h4>Other / not decided</h4>
-                  <div class="camera-option">Point and shoot camera or a camera without a telephoto lens</div>
-                </div>
-              </div>
-            </paper-radio-button>
-          </paper-radio-group>
-        </div>
-      </eclipse-form-section>
-    </div>
-
-    <div id="apply" hidden$="{{!signedIn}}">
-      <paper-card id="apply-card">
-        <div class="participate">Participate</div>
-        <div>
-          <div disabled$="{{!_checkApply(totality, userService.camera)}}">
-            <h4>Megamovie Photo Team</h4>
-            <p>I have a DSLR camera with a telephoto lens and want to become part of the Megamovie Photo team.
-                <template is="dom-if" if="{{_checkApply(totality, userService.camera)}}">
-                  <div id="apply-button-holder">
-                    <a href="https://docs.google.com/a/google.com/forms/d/e/1FAIpQLSddqUiBP4UVQqujxdMxdBERdy2XofZANwnvN4eB94ItEEwZaA/viewform" target="_blank">
-                      <paper-button class="apply-button" raised>Apply</paper-button>
-                    </a>
-                  </div>
-                  <div class="apply-caption">Application managed by <a href="https://www.astrosociety.org/" target="_blank">Astronomical Society of the Pacific</a></div>
-                </template>
-            </p>
+      <eclipse-form-section id="profileSection"
+                            label="Profile"
+                            noactions
+                            summary="{{_getProfileSummary(userService.email, userService.name)}}">
+        <template is="dom-if" if="{{!userService.error}}">
+          <div class="input-section name-section">
+            <div class="name-line"><span class="fieldlabel">Name:</span><span class="fieldvalue">[[userService.name]]</span></div>
+            <div><span class="fieldlabel">Email:</span><span class="fieldvalue">[[userService.email]]</span></div>
+            <div class="moreinfo">This is the name and email address from your <a href="https://myaccount.google.com/privacy?pli=1#personalinfo" target="_blank">Google Account</a>. <a href="#" on-tap="_disconnect">Not you?</a></div>
+            <div class="newsletter-header">Newsletter: <a href="https://groups.google.com/a/lists.berkeley.edu/forum/#!forum/eclipse" target="_blank">Join the UC Berkeley Eclipse Megamovie Google Group</a></div>
+            <div class="newsletter-caption">To get email notifications about the eclipse and updates to this site.</div>
           </div>
-          <h4>Fan</h4>
-          <p>I have a smartphone, point and click camera, or just want to stay in the loop as the project progresses.
-              Join the <a href="https://groups.google.com/a/lists.berkeley.edu/forum/#!forum/eclipse" target="_blank">the UC Berkeley Eclipse Megamovie Google Group</a> to get the newsletter.
-          </p>
-          <p>
-            Questions for us? If you need to get ahold of us, please reach out to <a href="mailto:eclipse-megamovie-questions@googlegroups.com">eclipse-megamovie-questions@googlegroups.com</a> and we’ll work to get back to you as soon as possible.
-          </p>
-        </div>
-      </paper-card>
-    </div>
-
-    <div id="advanced" hidden$="{{!userService.exists}}">
-      <eclipse-form-section label="Advanced" summary="" noactions>
-        <paper-button class="deleteButton" on-tap="_confirmDelete">Delete account</paper-button>
+        </template>
+        <template is="dom-if" if="{{userService.error}}">
+          <div class="input-section name-section">Could not access profile information.</div>
+        </template>
       </eclipse-form-section>
+
+      <div id="advanced" hidden$="{{!userService.exists}}">
+        <eclipse-form-section label="Advanced" summary="" noactions>
+          <paper-button class="deleteButton" on-tap="_confirmDelete">Delete account</paper-button>
+        </eclipse-form-section>
+      </div>
+
+      <template is="dom-if" if="[[_checkSpecialPages(userService.roles)]]">
+        <paper-card class="section-card" id="admin-card">
+          <a href="/admin" hidden$="[[!_checkRole(userService.roles, 'admin')]]"><h4>Admin page</h4></a>
+          <a href="/review" hidden$="[[!_checkRole(userService.roles, 'reviewer')]]"><h4>Photo review page</h4></a>
+        </paper-card>
+      </template>
     </div>
 
     <div id="signinprompt" hidden="{{signedIn}}">
-      To participate, you need to sign in with a Google Account.
+      To view your profile, you need to sign in with a Google Account.
     </div>
   </template>
 
   <script>
     Polymer({
       is: 'eclipse-profile',
-      behaviors: [EclipseBehaviors.DebugLoggerBehavior],
+      behaviors: [EclipseBehaviors.DebugLoggerBehavior, EclipseBehaviors.DateAwareBehavior],
 
       properties: {
         userService : {
           type: Object
+        },
+        greeting : {
+          type: String,
+          value: "Eclipse Megamovie"
+        },
+        geocodedLocation: {
+          type: Array
         }
       },
 
@@ -386,8 +339,8 @@ limitations under the License.
 
         // Make a closure storing this Polymer object
         this.beforeUnload = function(profile) {
-          function checkSaving() {
-           return profile._checkNeedsSaving();
+          function checkSaving(event) {
+           return profile._checkNeedsSaving(event);
           };
           return checkSaving;
         }(this);
@@ -419,24 +372,15 @@ limitations under the License.
         this._refreshProfile();
       },
 
-      _getProfileSaveLabel: function() {
-        if (!this.userService || !this.userService.exists) {
-          return "Create account";
-        } else {
-          return "Next";
-        }
-      },
-
       _refreshProfile: function() {
         // Refresh the bound fields. TODO: this seems odd, perhaps there is a better way?
         var cache = this.userService;
         this.userService = null;
         this.userService = cache;
-        if (this.userService) {
-          this.location = this.userService.location;
-          this.$.locationMap.search(this.location);
-        }
-        this._checkApply();
+      },
+
+      _disconnect: function() {
+        this.userService.disconnect();
       },
 
       _getProfileSummary: function() {
@@ -476,11 +420,29 @@ limitations under the License.
         }
       },
 
+      // Return true if apply button should be shown.
       _checkApply: function() {
-        this.consoleLogIfAble("Checking apply " + this.$.locationMap.totality + " "
-            + (this.userService ? this.userService.camera : "no user service"));
-        return (this.$.locationMap.totality
-            && (this.userService.camera == "dslr_gps" || this.userService.camera == "dslr_smartphone"));
+        return false;
+      },
+
+      // Return true if entire apply section should be shown.
+      _checkApplySection: function(signedIn) {
+        if (signedIn === false) {
+          return false;
+        } else if (this._checkVolunteer()) {
+          // If already a volunteer, no reason to show this section.
+          return false;
+        } else {
+          return true;
+        }
+      },
+
+      _checkVolunteer: function(signedIn) {
+        if (this.signedIn === false) {
+          return false;
+        }
+        return (this.userService && this.userService.roles
+            && this.userService.roles.includes("volunteer"));
       },
 
       _handleFormSave: function(event) {
@@ -495,9 +457,9 @@ limitations under the License.
             params.name = profile.getName();
             params.email = profile.getEmail();
           } else if (label == "Location") {
-            params.location = this.$.locationMap.location;
+            // No more map.
           } else if (label == "Camera") {
-            params.camera = this.$.cameraField.selected;
+            // No more camera.
           }
 
           event.detail.formSection.opened = false;
@@ -527,17 +489,45 @@ limitations under the License.
       },
 
       _needsSaving: function() {
-        return (!this.userService.exists && this.userService.name)
-            || (this.userService.location != this.$.locationField.value)
-            || (this.userService.camera != this.$.cameraField.selected);
+        return false;
       },
 
-      _checkNeedsSaving: function() {
-        if (this._needsSaving()) {
-          var dialogText = "You have unsaved changes.";
+      _checkNeedsSaving: function(event) {
+        var dialogText = '';
+        var upload = this.$$('eclipse-upload');
+        if (upload && upload.hasUnsubmittedPhotos()) {
+          dialogText = upload.unsubmittedPhotosWarningText;
+        } else if (this._needsSaving()) {
+          dialogText = "You have unsaved changes.";
+        }
+
+        if (dialogText.length > 0) {
           event.returnValue = dialogText;
           // TODO: if we aren't on the page already, navigate here?
           return dialogText;
+        }
+      },
+
+      _checkSpecialPages: function(roles) {
+        return this._checkRole(roles, "admin") || this._checkRole(roles, "reviewer");
+      },
+
+      _checkRole: function(roles, role) {
+        if (roles && roles.includes) {
+          return roles.includes(role);
+        }
+        return false;
+      },
+
+      _hasBadges: function(signedIn, roles, badges) {
+        return this._checkRole(roles, "volunteer") || (badges && badges.length > 0);
+      },
+
+      _getInfoPageSelection: function(eclipseState) {
+        if (eclipseState == this.PRE_ECLIPSE_DAY) {
+          return "pre";
+        } else {
+          return "dayAndPost";
         }
       }
     });

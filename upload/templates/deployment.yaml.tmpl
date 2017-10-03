@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: upload
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       tier: upload-backend
@@ -25,9 +25,10 @@ spec:
           ports:
             - containerPort: 8080
           livenessProbe:
-              httpGet:
-                  path: /services/upload/healthz
+              tcpSocket:
                   port: 8080
+              initialDelaySeconds: 15
+              periodSeconds: 30
               timeoutSeconds: 60
           readinessProbe:
               httpGet:
@@ -35,11 +36,11 @@ spec:
                   port: 8080
           resources:
               limits:
-                  cpu: 1000m
-                  memory: 11000M
+                  cpu: 2000m
+                  memory: 2G
               requests:
                   cpu: 1000m
-                  memory: 11000M
+                  memory: 2G
           volumeMounts:
             - name: upload-volume
               mountPath: /pending-uploads
@@ -48,9 +49,10 @@ spec:
           ports:
             - containerPort: 80
           livenessProbe:
-              httpGet:
-                   path: /services/upload/healthz
-                   port: 80
+              tcpSocket:
+                  port: 80
+              initialDelaySeconds: 15
+              periodSeconds: 30
               timeoutSeconds: 60
           readinessProbe:
              httpGet:
@@ -58,20 +60,20 @@ spec:
                   port: 80
           resources:
               limits:
-                  cpu: 500m
-                  memory: 1000M
+                  cpu: 100m
+                  memory: 256M
               requests:
-                  cpu: 500m
-                  memory: 1000M
+                  cpu: 100m
+                  memory: 256M
         - name: upload-daemon
           image: {{GCR_PREFIX}}/upload-daemon
           resources:
               limits:
-                  cpu: 1000m
-                  memory: 2000M
+                  cpu: 4000m
+                  memory: 4000M
               requests:
                   cpu: 1000m
-                  memory: 2000M
+                  memory: 4000M
           volumeMounts:
             - name: upload-volume
               mountPath: /pending-uploads

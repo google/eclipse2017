@@ -14,11 +14,11 @@
 # limitations under the License.
 
 import hashlib
+import logging
 import types
 import flask
 
-from gcloud.exceptions import GCloudError
-from gcloud import datastore
+from google.cloud import datastore
 
 from common.eclipse2017_exceptions import MissingCredentialTokenError, MissingUserError, ApplicationIdentityError
 from common.secret_keys import GOOGLE_HTTP_API_KEY, GOOGLE_OAUTH2_CLIENT_ID
@@ -26,11 +26,12 @@ from common.secret_keys import GOOGLE_HTTP_API_KEY, GOOGLE_OAUTH2_CLIENT_ID
 from app_module import AppModule
 from common import util
 from common import users
+from common import flask_users
 from common import roles
 
 
 REQUIRED_FIELDS = set(())
-OPTIONAL_FIELDS = set(('name', 'location', 'camera', 'email'))
+OPTIONAL_FIELDS = set(('name', 'location', 'geocoded_location', 'camera', 'email', 'badges'))
 IMMUTABLE_FIELDS = set(('roles'))
 ALL_MUTABLE_FIELDS = set.union(REQUIRED_FIELDS, OPTIONAL_FIELDS)
 ALL_FIELDS = set.union(ALL_MUTABLE_FIELDS, IMMUTABLE_FIELDS)
@@ -48,9 +49,6 @@ class Profile(AppModule):
         self.name = 'profile'
         self.import_name = __name__
 
-        self.users = users.Users()
-        self.roles = roles.Roles()
-
         self._routes = (
             ('/', 'root', self.root, ('GET',)),
             ('/<user_id>', 'user', self.user, ('GET', 'PUT', 'UPDATE', 'DELETE')))
@@ -60,10 +58,10 @@ class Profile(AppModule):
 
     def user(self, user_id):
         client = self._get_datastore_client()
-        result = self.users.authn_check(flask.request.headers)
+        result = flask_users.authn_check(flask.request.headers)
         if isinstance(result, flask.Response):
             return result
-        userid_hash = self.users.get_userid_hash(result)
+        userid_hash = users.get_userid_hash(result)
 
         # User GETting their own record
         if self.request.method == 'GET':
@@ -74,7 +72,7 @@ class Profile(AppModule):
 
         # Special case for user PUTting their own initial record
         if self.request.method == 'PUT' and \
-           not self.users.check_if_user_exists(client, userid_hash) and \
+           not users.check_if_user_exists(client, userid_hash) and \
            userid_hash == user_id:
               return self.put_user(user_id)
 
@@ -95,17 +93,17 @@ class Profile(AppModule):
         client = self._get_datastore_client()
 
         try:
-            entity = self.users.get_user(client, user_id)
-        except GCloudError as e:
+            entity = users.get_user(client, user_id)
+        except Exception as e:
             logging.error("Datastore get operation failed: %s" % str(e))
-            flask.Response('Internal server error', status=500)
+            return flask.Response('Internal server error', status=500)
 
         if entity is None:
             return flask.Response('User does not exist', status=404)
-        if not self.roles._check_if_user_role_exists(client, user_id):
+        if not roles._check_if_user_role_exists(client, user_id):
             return flask.Response('User role does not exist', status=404)
-        roles = self.roles.get_user_role(client, user_id)
-        result = self._create_user_dict(entity, roles)
+        roles_ = roles.get_user_role(client, user_id)
+        result = self._create_user_dict(entity, roles_)
         s = flask.jsonify(**result)
         return s
 
@@ -126,13 +124,13 @@ class Profile(AppModule):
 
         with client.transaction():
             try:
-                if self.users.check_if_user_exists(client, user_id):
+                if users.check_if_user_exists(client, user_id):
                     return self.Response('User exists', status=409)
-                entity = self.users.get_empty_user_entity(client, user_id)
+                entity = users.get_empty_user_entity(client, user_id)
                 util._update_entity(json, ALL_MUTABLE_FIELDS, entity)
-                self.users.create_or_update_user(client, entity)
-                self.roles.create_user_role(client, user_id)
-            except GCloudError as e:
+                users.create_or_update_user(client, entity)
+                roles.create_user_role(client, user_id)
+            except Exception as e:
                 logging.error("Datastore put operation failed: %s" % str(e))
                 self.Response('Internal server error', status=500)
 
@@ -155,12 +153,12 @@ class Profile(AppModule):
 
         with client.transaction():
             try:
-                entity = self.users.get_user(client, user_id)
+                entity = users.get_user(client, user_id)
                 if entity is None:
                     return flask.Response('User does not exist', status=404)
                 util._update_entity(json, ALL_MUTABLE_FIELDS, entity)
-                self.users.create_or_update_user(client, entity)
-            except GCloudError as e:
+                users.create_or_update_user(client, entity)
+            except Exception as e:
                 logging.error("Datastore update operation failed: %s" % str(e))
                 flask.Response('Internal server error', status=500)
         return flask.Response('OK', status=200)
@@ -170,11 +168,11 @@ class Profile(AppModule):
 
         with client.transaction():
             try:
-                if not self.users.check_if_user_exists(client, user_id):
+                if not users.check_if_user_exists(client, user_id):
                     return flask.Response('User does not exist', status=404)
-                self.users.delete_user(client, user_id)
-                self.roles.delete_user_role(client, user_id)
-            except GCloudError as e:
+                users.delete_user(client, user_id)
+                roles.delete_user_role(client, user_id)
+            except Exception as e:
                 logging.error("Datastore delete operation failed: %s" % str(e))
                 flask.Response('Internal server error', status=500)
         return flask.Response('OK', status=200)

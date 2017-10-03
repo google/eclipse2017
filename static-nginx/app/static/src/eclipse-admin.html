@@ -17,9 +17,20 @@ limitations under the License.
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../bower_components/google-map/google-map.html">
+<link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/google-signin/google-signin.html">
 <link rel="import" href="eclipse-admin-service/eclipse-admin-service.html">
 <link rel="import" href="behaviors/eclipse-debug-logger.html">
 <link rel="import" href="shared-styles.html">
+<script src="../bower_components/numeral/min/numeral.min.js"></script>
+<script src="eclipse-location-map/eclipse_path.js"></script>
 <script src="client-id.js"></script>
 
 <dom-module id="eclipse-admin">
@@ -27,21 +38,87 @@ limitations under the License.
     <style include="shared-styles">
       :host {
         @apply(--layout-vertical);
-        @apply(--content-width);
         min-height:calc(100vh - 180px);
-        max-width:800px;
+        background: var(--paper-grey-50);
+        color: var(--paper-grey-800);
       }
 
-      @media all and (max-width:600px) {
+      #admin{
+        @apply(--content-width);
+        @apply(--layout-vertical);
+      }
 
+      @media all and (min-width:850px) {
+        #admin {
+          min-width: 800px;
+        }
+      }
+
+      paper-card.stats {
+        @apply(--layout-horizontal);
+        @apply(--layout-justified);
+        margin: 8px 0;
+      }
+
+      h2 {
+        @apply(--paper-font-title);
+      }
+
+      h4 {
+        @apply(--paper-font-caption);
+      }
+
+      .stat {
+        padding: 8px 32px;
+        @apply(--paper-font-display1);
+        @apply(--layout-flex);
+        @apply(--layout-vertical);
+        @apply(--layout-center);
       }
 
       #signin {
         align-self:flex-end;
+        margin-top: 16px;
+        margin-right: 32px;
+      }
+
+      google-map {
+        height: 500px;
+        margin-top:8px;
+      }
+
+      paper-spinner {
+        @apply(--layout-self-center);
+        margin-top:24px;
+      }
+
+      .map-selectors {
+        margin: 8px 0;
+        @apply(--layout-horizontal);
+      }
+
+      paper-checkbox {
+        margin: 0 16px;
+      }
+
+      #advanced-selection-controls {
+        margin-bottom:16px;
       }
     </style>
     <eclipse-admin-service id="adminService"
-        admin="{{admin}}" user-count="{{userCount}}"></eclipse-admin-service>
+        admin="{{admin}}"
+        user-count="{{userCount}}"
+        user-locations="{{userLocations}}"
+        photo-locations="{{photoLocations}}"
+        photo-count="{{photoCount}}"
+        userCountLoading="{{userCountLoading}}"
+        userLocationLoading="{{userLocationLoading}}"
+        photoCountLoading="{{photoCountLoading}}"
+        loading="{{loading}}"
+        location-include-teramovie="[[includeTeramovie]]"
+        >
+
+    </eclipse-admin-service>
     <google-signin
         id="signin"
         scopes="profile"
@@ -50,12 +127,62 @@ limitations under the License.
         hidden$="{{!signedIn}}"></google-signin>
 
 
-    <!-- Eclipse profile page content -->
+    <!-- Eclipse admin page content -->
     <template is="dom-if" if="{{admin}}">
       <div id="admin">
-        Welcome!
+        <h2>Dashboard</h2>
+        <paper-card class="stats">
+          <div class="stat">
+            <h4>Users</h4>
+            [[_getNumber(userCount.total_count)]]
+          </div>
+          <div class="stat">
+            <h4>Photo team members</h4>
+            [[_getNumber(userCount.volunteer_count)]]
+          </div>
+        </paper-card>
 
-        Current user count: [[userCount]]
+        <paper-card class="stats">
+          <div class="stat">
+            <h4>Megamovie photo count</h4>
+            [[_getNumber(photoCount.types.megamovie.total_count)]]
+          </div>
+          <div class="stat">
+            <h4>Megamovie photo (GPS) count</h4>
+            [[_getNumber(photoCount.types.megamovie.gps_count)]]
+          </div>
+          <div class="stat">
+            <h4>Teramovie photo count</h4>
+            [[_getNumber(photoCount.types.teramovie.total_count)]]
+          </div>
+          <div class="stat">
+            <h4>Teramovie photo (GPS) count</h4>
+            [[_getNumber(photoCount.types.teramovie.gps_count)]]
+          </div>
+        </paper-card>
+
+        <google-map id="locationMap"
+                    map="{{map}}"
+                    api-key="[[apiKey]]"
+                    disable-street-view-control="true"
+                    on-google-map-ready="_createEclipsePath"
+                    latitude="38.58562125645996"
+                    longitude="-98.06547712890625"
+                    zoom="4"
+        ></google-map>
+        <paper-radio-group id="mapdata" class="map-selectors" selected="{{mapDataSelection}}">
+          <paper-radio-button name="photos">Photos</paper-radio-button>
+          <paper-radio-button name="users">Users</paper-radio-button>
+        </paper-radio-group>
+        <iron-pages id="advanced-selection-controls" selected="[[mapDataSelection]]" attr-for-selected="id"
+                    fallback-selection="photos">
+          <div id="photos">
+            <paper-checkbox checked="{{includeTeramovie}}">Teramovie</paper-checkbox>
+          </div>
+          <div id="users">
+            <!-- No options -->
+          </div>
+        </iron-pages>
       </div>
     </template>
 
@@ -64,6 +191,8 @@ limitations under the License.
         You need to be an administrator to view this page.
       </div>
     </template>
+
+    <paper-spinner active="{{loading}}"></paper-spinner>
   </template>
 
   <script>
@@ -72,19 +201,163 @@ limitations under the License.
       behaviors: [EclipseBehaviors.DebugLoggerBehavior],
 
       properties: {
+        apiKey: {
+          type: String,
+          value: api_key // This comes from client-id.js
+        },
+        showUsers: {
+          type: Boolean,
+          value: true
+        },
+        showPhotos: {
+          type: Boolean,
+          value: true
+        },
+        userLocations: {
+          type: Array
+        },
+        photoLocations: {
+          type: Array
+        },
+        map: {
+          type: Object
+        },
+        userCount : {
+          type: Object
+        },
+        photoCount : {
+          type: Object
+        },
+        userHeatMap: {
+          type: Object
+        },
+        photoHeatMap: {
+          type: Object
+        }
+
       },
 
       observers: [
+        '_createUserHeatMap(userLocations)',
+        '_createPhotoHeatMap(photoLocations)',
+        '_updateCount(userCount, photoCount)',
+        '_updateMapData(userHeatMap, photoHeatMap, mapDataSelection)'
       ],
 
       attached: function() {
         var signin = this.$$("#signin");
         signin.setAttribute("client-id", client_id);
 
+        this.mapDataSelection = 'photos';
       },
 
       detached: function() {
 
+      },
+
+      _createEclipsePath: function() {
+        if (!this.eclipsePath && this.map) {
+           var eclipsePath = new google.maps.Polygon({
+              paths: eclipse_path_coordinates, // This comes from eclipse_path.js
+              strokeColor: '#000000',
+              strokeOpacity: 0.8,
+              strokeWeight: 3,
+              fillColor: '#000000',
+              fillOpacity: 0.35,
+              clickable: false
+            });
+            eclipsePath.setMap(this.map);
+            this.eclipsePath = eclipsePath;
+        }
+        if (this.userLocations && !this.userHeatMap) {
+          this._createUserHeatMap(this.userLocations);
+        }
+        if (this.photoLocations && !this.photoHeatMap) {
+          this._createPhotoHeatMap(this.photoLocations);
+        }
+      },
+
+      _createUserHeatMap: function(userLocations) {
+        if (this.userHeatMap) {
+          this.userHeatMap.setMap(null);
+        }
+        this.userHeatMap = this._createHeatMap(userLocations);
+      },
+
+      _createPhotoHeatMap: function(photoLocations) {
+        if (this.photoHeatMap) {
+          this.photoHeatMap.setMap(null);
+        }
+        this.photoHeatMap = this._createHeatMap(photoLocations);
+      },
+
+      _createHeatMap: function(locations) {
+        this.consoleLogIfAble("Creating heat map");
+        if (this.map) {
+          var map = this.map;
+
+          var heatMap = new google.maps.visualization.HeatmapLayer({
+            data: this._getHeatMapLocations(locations),
+            map: map
+          });
+          heatMap.set('radius', 30);
+          heatMap.set('maxIntensity', 25);
+          return heatMap;
+        }
+        return null;
+      },
+
+      _getHeatMapLocations: function(locations) {
+        if (!locations) {
+          return null;
+        }
+        var returnArray;
+        if (locations.points) {
+          var minSize = locations.min_size ? locations.min_size : 1;
+          returnArray = locations.points.map(function(point) {
+            return {
+              location: new google.maps.LatLng(point[0][0], point[0][1]),
+              weight: point[1] / minSize
+            }
+          });
+        } else {
+          returnArray = locations.map(function(point) {
+            return new google.maps.LatLng(point[0], point[1]);
+          });
+        }
+
+        return returnArray;
+      },
+
+      _getNumber: function(number) {
+        var numeralObj = numeral(number);
+        return numeralObj.format("0.[0]a");
+      },
+
+      _updateMapData: function(userHeatMap, photoHeatMap, selection) {
+        if (!userHeatMap || !photoHeatMap || !this.map) {
+          return;
+        }
+        if (selection == 'users') {
+          userHeatMap.setMap(this.map);
+          photoHeatMap.setMap(null);
+        } else if (selection == 'photos') {
+          photoHeatMap.setMap(this.map);
+          userHeatMap.setMap(null);
+        }
+      },
+
+      _updateCount: function(userCount, photoCount) {
+        // Queue refresh.
+        if (!this.refreshInProgress) {
+          this.refreshInProgress = true;
+          this.consoleLogIfAble("Queuing refresh.");
+          this.async(function() {
+            this.consoleLogIfAble("Refreshing.");
+            this.$.adminService.refresh();
+            this.refreshInProgress = false;
+          }.bind(this), 5 * 60 * 1000);
+        }
       }
     });
   </script>

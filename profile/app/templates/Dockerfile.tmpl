@@ -19,4 +19,4 @@ ADD application.tar /app
 
 USER www-data
 WORKDIR /app
-CMD ["gunicorn", "main:app", "-b", "0.0.0.0:8080", "-t", "90", "-w", "8", "--log-level", "DEBUG", "--access-logfile", "/dev/stdout", "--error-logfile", "/dev/stderr"]
+CMD ["gunicorn", "main:app", "-b", "0.0.0.0:8080", "-t", "90", "-w", "8", "--log-level", "INFO", "--access-logfile", "/dev/stdout", "--error-logfile", "/dev/stderr"]

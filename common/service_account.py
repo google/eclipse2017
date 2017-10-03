@@ -15,19 +15,19 @@
 
 import os
 
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2 import service_account
 
 import constants
 from eclipse2017_exceptions import CouldNotObtainCredentialsError
-
 
 def get_credentials(scopes=''):
     """
     Returns credentials object for eclipse service account or None.
     """
     try:
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            constants.SERVICE_ACCOUNT_PATH, scopes)
+        credentials = service_account.Credentials.from_service_account_file(
+            constants.SERVICE_ACCOUNT_PATH)
+        credentials = credentials.with_scopes(scopes)
     except (IOError, ValueError, KeyError) as e:
         raise CouldNotObtainCredentialsError(e.message)
     return credentials

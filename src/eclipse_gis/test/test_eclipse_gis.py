@@ -42,5 +42,9 @@ class EclipseGisTest(unittest2.TestCase):
     np = self.eg.find_nearest_point_on_line(point)
     self.assertEqual(np, Point(-0.5, 0))
 
+  def testRandomPointIsInPolygon(self):
+    rp = self.eg.get_random_point_in_polygon()
+    self.assertTrue(self.eg.test_point_within_eclipse_boundary(rp))
+
 if __name__ == '__main__':
   unittest2.main()

@@ -1,0 +1,3 @@
+#!/bin/sh
+b=$(basename $1)
+exiftool -c "+%.6f" -a -G1 -s $1 > /mnt/dek/exif-stripped/$b.exif.txt

@@ -1,0 +1,292 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/iron-icons/maps-icons.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../shared-styles.html">
+<link rel="import" href="../behaviors/eclipse-debug-logger.html">
+
+<dom-module id="eclipse-upload-file-preview">
+  <template>
+    <style include="shared-styles">
+      :host {
+        width: 187px; // calc(171px + 16px);
+        height: 134px; // calc(118px + 16px);
+        padding:8px;
+
+      }
+
+      .file-preview {
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+      }
+
+      .file[error] {
+        border: 1px solid;
+        border-color: var(--paper-red-700);
+      }
+
+      .file {
+        height: 96px;
+        width: 171px;
+        border: 1px solid #ccc;
+        position:relative;
+        overflow:hidden;
+        text-align:center;
+        background:#000;
+      }
+
+      .file img {
+        width:auto;
+        height:auto;
+      }
+
+      .file img[portrait] {
+        width:auto;
+        height:100%;
+      }
+
+      #progress, .badges {
+        position:absolute;
+        top:0;
+        left:0;
+        right:0;
+        bottom:0;
+      }
+
+      paper-spinner {
+        position:absolute;
+        top:calc(96px - (28px) - 4px);
+        left:calc(171px - (28px) - 4px);
+      }
+
+      #progress {
+        background: rgba(255,255,255,.5);
+      }
+
+      .badges {
+        @apply(--layout-horizontal-reverse);
+        padding:8px;
+      }
+
+      .badges[error]>iron-icon {
+        color: var(--paper-red-700);
+      }
+
+      .title {
+        margin-left: 16px;
+      }
+
+      .checkbox-holder {
+
+      }
+
+      paper-checkbox {
+        margin:4px;
+        width:100%;
+        --primary-text-color: var(--paper-grey-50);
+        --primary-color: var(--paper-yellow-600);
+        --paper-checkbox-checkmark-color: var(--paper-grey-800);
+      }
+
+      #rawpreview {
+        @apply(--layout-vertical);
+        @apply(--layout-center-justified);
+        height:100%;
+      }
+
+
+    </style>
+    <div class="file-preview">
+        <div class="checkbox-holder">
+          <paper-checkbox title="[[file.name]]" noink checked$="[[file.submit]]" on-tap="_notifyFileChanged"></paper-checkbox>
+        </div>
+        <div class="file" error$="[[file.error]]" title$="[[file.error]]">
+          <paper-spinner active="[[_isProcessing(file.uploading, file.complete, file.error)]]"></paper-spinner>
+          <div class="badges" error$="[[file.error]]">
+            <iron-icon icon="icons:refresh" on-tap="_retry" hidden$="[[!file.error]]"></iron-icon>
+            <iron-icon icon="icons:check" hidden$="[[!file.complete]]"></iron-icon>
+            <iron-icon icon="maps:my-location" hidden$="[[!file.gpsLocation]]"></iron-icon>
+          </div>
+          <div id="progress" hidden$="[[file.complete]]"></div>
+          <img id="preview"/>
+          <div id="rawpreview" hidden>
+            No preview available.<br>
+            [[file.status]]</div>
+        </div>
+        <div class="title">[[file.name]]</div>
+    </div>
+  </template>
+  <script>
+      Polymer({
+        is: 'eclipse-upload-file-preview',
+        behaviors: [EclipseBehaviors.DebugLoggerBehavior],
+
+        properties: {
+          file: {
+            type: Object
+          },
+          // Max size of files that can be previewed.
+          maxFilePreviewBytes: {
+            type: Number,
+            value: 30 * 1024 * 1024
+          },
+          index: {
+            type: Number
+          }
+        },
+
+        observers: [
+          '_onFileChanged(file)',
+          '_onProgressUpdated(file.progress)',
+          '_onFileAborted(file.abort)'
+        ],
+
+        attached: function() {
+        },
+
+        _onFileChanged: function(file) {
+          if (file.previewImageUrl) {
+            this.$.preview.src = file.previewImageUrl;
+
+            this._showPreview();
+
+            // Restore portrait.
+            if (file.previewImagePortrait) {
+              this.$.preview.setAttribute("portrait", "true");
+            } else {
+              this.$.preview.removeAttribute("portrait");
+            }
+
+            return;
+          }
+
+          // Check if file is too big.
+          if (file.size > this.maxFilePreviewBytes) {
+            this._showNoPreview();
+            return;
+          }
+
+          var img = new Image();
+
+          img.onerror = function() {
+            this._showNoPreview();
+          }.bind(this);
+
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var inputWidth = img.naturalWidth;
+            var inputHeight = img.naturalHeight;
+            var targetWidth = this.that.$$(".file").offsetWidth;
+            var targetHeight = this.that.$$(".file").offsetHeight;
+            var outputWidth, outputHeight;
+            var portrait;
+            if (inputWidth > inputHeight) {
+              // Landscape
+              outputWidth = Math.min(targetWidth, inputWidth);
+              outputHeight = outputWidth / inputWidth * inputHeight;
+
+              if (outputHeight > targetHeight) {
+                // Reduce width to match.
+                outputWidth = targetHeight / outputHeight * outputWidth;
+                outputHeight = targetHeight;
+              }
+
+              this.that.$.preview.removeAttribute("portrait");
+              portrait = false;
+            } else {
+              // Portrait
+              outputHeight = Math.min(targetHeight, inputHeight);
+              outputWidth = outputHeight / inputHeight * inputWidth;
+              // Don't need to worry about output width being greater.
+              this.that.$.preview.setAttribute("portrait", "true");
+              portrait = true;
+            }
+            canvas.width = Math.floor(outputWidth);
+            canvas.height = Math.floor(outputHeight);
+            var context = canvas.getContext('2d');
+            context.drawImage(img, 0, 0, outputWidth, outputHeight);
+            var dataUrl = canvas.toDataURL();
+            this.that.$.preview.src = dataUrl;
+            this.that._showPreview();
+            window.URL.revokeObjectURL(img.src);
+            // Save this data URL in the object so we don't need to recompute.
+            this.that.set("file.previewImageUrl", dataUrl);
+            this.that.set("file.previewImagePortrait", portrait);
+
+          }.bind({img: img, that: this});
+          img.src = window.URL.createObjectURL(file);
+        },
+
+        _showNoPreview: function() {
+          // Hide the preview if we can't load it, and enable the other view
+          this.$.preview.setAttribute("hidden", "true");
+          this.$.rawpreview.removeAttribute("hidden");
+        },
+
+        _showPreview: function() {
+          this.$.preview.removeAttribute("hidden");
+          this.$.rawpreview.setAttribute("hidden", "true");
+        },
+
+        _onFileAborted: function(abort) {
+          if (abort) {
+            this.fire('file-remove', {file: this.file});
+          }
+        },
+
+        _showClear: function(progress, indeterminate) {
+          return indeterminate || progress != 100;
+        },
+
+        _retry: function(e) {
+          e.preventDefault();
+          return this.fire('file-retry', {file: this.file});
+        },
+
+        _abort: function(e) {
+          e.preventDefault();
+          return this.fire('file-abort', {file: this.file});
+        },
+
+        _onProgressUpdated: function(progress) {
+          var width = this.$$(".file").offsetWidth;
+          var height = this.$$(".file").offsetHeight;
+          var remaining = 1 - (progress / 100);
+          var remainingWidth =  width - (remaining * width);
+          this.$.progress.style.clip = "rect(0," + width + "px," + height + "px," + remainingWidth + "px)";
+          this.$.progress.title = "Upload progress: " + progress;
+        },
+
+        _notifyFileChanged: function(e) {
+          var checked = e.target.checked;
+          // On some browsers, the target is the div, not the paper-checkbox.
+          if (checked == undefined) {
+            checked = e.currentTarget.checked;
+          }
+          this.fire('file-submit-changed', {checked: checked, index: this.index});
+        },
+
+        _isProcessing: function(uploading, complete, error) {
+          return !uploading && !complete && !error;
+        }
+      });
+    </script>
+</dom-module>

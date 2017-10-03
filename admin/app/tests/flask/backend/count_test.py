@@ -17,12 +17,12 @@ import json
 import unittest2
 
 from app.backend.eclipse2017_admin_app import Eclipse2017AdminApp
-from gcloud import datastore
+from google.cloud import datastore
 
 from common import config
 from common import secret_keys as sk
-from common.roles import Roles
-from common.users import Users
+from common import roles
+from common import users
 
 from common import test_common
 from common import util
@@ -33,32 +33,23 @@ class CountTests(unittest2.TestCase):
     """
     def __init__(self, *args, **kwargs):
         super(CountTests, self).__init__(*args, **kwargs)
-        self.roles = Roles()
-        self.users = Users()
-
         self.USER = '1'
         self.USER2 = '2'
 
-        self.USER_HASH = unicode(self.users.get_userid_hash(self.USER))
-        self.USER2_HASH = self.users.get_userid_hash(self.USER2)
+        self.USER_HASH = unicode(users.get_userid_hash(self.USER))
+        self.USER2_HASH = users.get_userid_hash(self.USER2)
 
         # Fake user idtoken verifier
-        class client:
-            def __init__(self):
-                pass
-            def verify_id_token(self, token, client_id):
+        class id_token:
+            def __init__(self, user):
+                self.user = user
+            def verify_token(self, token, _):
                 return { 'iss': 'accounts.google.com',
-                         'sub': self.USER}
+                         'sub': self.user}
 
-        # Fake user idtoken verifier
-        class user2_client:
-            def __init__(self):
-                pass
-            def verify_id_token(self, token, client_id):
-                return { 'iss': 'accounts.google.com',
-                         'sub': self.USER2}
-
-        util.client = client()
+        self.id_token = id_token(self.USER)
+        self.id_token2 = id_token(self.USER2)
+        util.id_token = self.id_token
 
         self.HEADERS={'Content-type': 'application/json',
                       'X-IDTOKEN': self.USER}
@@ -93,12 +84,12 @@ class CountTests(unittest2.TestCase):
 
     def test_get_count(self):
         self._setup_user(self.USER_HASH)
-        self.roles.create_user_role(self.datastore_client, self.USER_HASH, [u'admin'])
+        roles.create_user_role(self.datastore_client, self.USER_HASH, [u'admin'])
         self._get_count_root(expected_status=200)
 
     def test_get_count_not_admin(self):
         self._setup_user(self.USER_HASH)
-        self.roles.create_user_role(self.datastore_client, self.USER_HASH, [u'user'])
+        roles.create_user_role(self.datastore_client, self.USER_HASH, [u'user'])
         self._get_count_root(expected_status=403)
 
     def test_get_count_missing_auth(self):

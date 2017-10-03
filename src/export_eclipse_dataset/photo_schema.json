@@ -1,0 +1,120 @@
+[
+  {
+    "mode": "NULLABLE", 
+    "name": "id", 
+    "type": "STRING"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "user", 
+    "type": "STRING"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "camera_datetime", 
+    "type": "DATETIME"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "uploaded_date", 
+    "type": "DATETIME"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "image_datetime", 
+    "type": "DATETIME"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "image_bucket", 
+    "type": "STRING"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "image_type", 
+    "type": "STRING"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "upload_session_id", 
+    "type": "STRING"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "equatorial_mount", 
+    "type": "BOOLEAN"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "datetime_repaired", 
+    "type": "BOOLEAN"
+  }, 
+  {
+    "mode": "NULLABLE", 
+    "name": "lat", 
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "lon", 
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "width", 
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "height", 
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "make", 
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "model", 
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "exposure_time", 
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE", 
+    "name": "aperture_value", 
+    "type": "STRING"
+  },
+  {
+    "name": "vision_labels",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "detected_circle",
+    "type": "record",
+    "mode": "NULLABLE",
+    "fields": [
+	    {
+		"name": "center_x",
+		"mode": "REQUIRED",
+		"type": "FLOAT"
+	    },
+	    {
+		"name": "center_y",
+		"mode": "REQUIRED",
+		"type": "FLOAT"
+	    },
+	    {
+		"name": "radius",
+		"mode": "REQUIRED",
+		"type": "FLOAT"
+	    }
+      ]
+  }
+		
+]

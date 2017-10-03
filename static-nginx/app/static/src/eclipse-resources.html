@@ -51,6 +51,11 @@ limitations under the License.
         margin-bottom: 16px;
       }
 
+      span.title>img {
+        width:75%;
+        height:auto;
+      }
+
       .section {
         margin-bottom:48px;
       }
@@ -67,6 +72,8 @@ limitations under the License.
         .cards {
           @apply(--layout-horizontal);
           @apply(--layout-stretch);
+          @apply(--layout-center-justified);
+          @apply(--layout-wrap);
         }
       }
 
@@ -110,7 +117,8 @@ limitations under the License.
             <template is="dom-repeat" items="[[item.cards]]">
               <a href="[[item.url]]" target="_blank">
                 <paper-card elevation="2">
-                  <span class="title">[[item.title]]</span>
+                  <span class="title" hidden="[[!item.titleImg]]"><img src="[[item.titleImg]]" title="[[item.title]]"/></span>
+                  <span class="title" hidden$="[[item.titleImg]]">[[item.title]]</span>
                   <div class="text">[[item.text]]</div>
                 </paper-card>
               </a>
@@ -124,7 +132,11 @@ limitations under the License.
   <script>
     Polymer({
       is: 'eclipse-resources',
-
+      properties: {
+        sections: {
+          type: Array
+        }
+      },
       ready: function() {
         this.sections = [
             {
@@ -158,6 +170,10 @@ limitations under the License.
                 "title": "Eclipse 2017",
                 "text": "This very informative site by eclipse enthusiast Dan McGlaun includes some wonderful explanatory animations provided by Ernie Wright of NASA.",
                 "url": "http://www.eclipse2017.org"
+              },  {
+                "title": "The Great American Eclipse",
+                "text": "This comprehensive site was created by prolific eclipse map makers Michael Zeiler and Polly White. There are therefore a significant number of location-based and highly visual information resources.",
+                "url": "http://www.greatamericaneclipse.com"
               }]
             },
 
@@ -169,9 +185,44 @@ limitations under the License.
                 "url": "http://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2017Aug21Tgoogle.html"
               }, {
                 "title": "2017 Total Eclipse",
-                "text": "This interactive Google Map from Xavier Jubier has key eclipse details for any location desired",
+                "text": "Another great interactive Google Map from Xavier Jubier has key eclipse details for any location desired",
                 "url": "http://www.eclipse2017.org/xavier_redirect.htm"
+              }, {
+                "title": "Tour the Great American Eclipse of 2017",
+                "text": "This interactive map from Michael Zeiler and Polly White is exceptionally detailed, so much so, they created a video to help you get the most from it! It’s also useful because it provides eclipse information in local time instead of UTC.",
+                "url": "https://goo.gl/oHFFYF"
               }]
+            },
+
+            {
+              "title": "Eclipse Photography",
+              "cards": [{
+                "title": "B&H Solar Observing",
+                "titleImg": "/images/bhlogo.jpg",
+                "text": "Find great information on how to observe and photograph the eclipse with B&H Photo Video's solar viewing resources.",
+                "url": "https://www.bhphotovideo.com/c/solar-observing/ci/33818/N/3583558376/sba"
+              },
+              {
+                "title": "Photographing a solar eclipse",
+                "text": "A great guide put together by Fred Espenak (a.k.a. Mr. Eclipse). Contains great instructions and a solar eclipse exposure guide. ",
+                "url": "http://www.mreclipse.com/SEphoto/SEphoto.html"
+              },
+              {
+                "title": "How to Shoot Solar-Eclipse Images & Videos",
+                "text": "This guide from the American Astronomical Society on how to photograph or video the eclipse also lists a variety of additional resources for novices and pros alike.",
+                "url": "https://eclipse.aas.org/imaging-video/images-videos"
+              },
+              {
+                "title": "Megamovie Camera Spec Calculator",
+                "text": "Use this tool to help determine if your camera specs will let you capture a scientifically valuable photo of the eclipse.",
+                "url": "http://multiverse.ssl.berkeley.edu/Eclipse/CamSpecCalc"
+              },
+              {
+                "title": "Canon’s Total Guide to Totality: Solar Eclipse Photography",
+                "text": "Be prepared for this once-in-a-generation event with Canon's help: find tips, tricks, techniques and eclipse photography workshops.",
+                "url": "http://learn.usa.canon.com/resources/articles/2017/eclipse.shtml"
+              }
+              ]
             }
           ]
       }

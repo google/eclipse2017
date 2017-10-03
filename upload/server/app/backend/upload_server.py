@@ -15,29 +15,36 @@
 
 from datetime import datetime
 import hashlib
+import imghdr
 import json
 import os
 import threading
 import time
+import tempfile
+import zipfile
+import shutil
 from uuid import uuid4
+import StringIO
+import io
 
 import flask
-from gcloud import datastore
-from gcloud.exceptions import GCloudError
+from google.cloud import datastore
+from google.gax.errors import GaxError
 from werkzeug.exceptions import ClientDisconnected
 
+from common import config
 from common import constants
 from common import datastore_schema as ds
 from common.eclipse2017_exceptions import FailedToRenameFileError
 from common.eclipse2017_exceptions import FailedToSaveToDatastoreError
+from common.exif import _extract_exif_metadata
+from common import users
+from common import roles
+from common import flask_users
 from common import util
-from common import secret_keys as sk
 
-from oauth2client import client, crypt
-
-
-# TODO add authentication - this needs to use the same cookie as profile server
-
+VALID_MEGAMOVIE_UPLOADER_ROLES = set([roles.VOLUNTEER_ROLE])
+VALID_TERAMOVIE_UPLOADER_ROLES = set([roles.USER_ROLE])
 
 class UploadServer(flask.Flask):
     """
@@ -122,116 +129,187 @@ class UploadServer(flask.Flask):
         Returns constants.HTTP_OOM status if the server is under too much
             load to handle the request.
         """
+        self.logger.info("Upload POST received")
+        datastore_client = self.datastore.Client(self.config['PROJECT_ID'])
 
         # Fetch the user's identifier from the request, which
         # contains the oauth2 creds.
         try:
-          token = flask.request.headers['X-IDTOKEN']
+            token = flask.request.headers['X-IDTOKEN']
         except Exception as e:
+            self.logger.error("Missing credential token header")
             return flask.Response('Missing credential token header', 405)
+        try:
+            upload_session_id = flask.request.headers['X-UPLOADSESSIONID']
+        except Exception as e:
+            self.logger.error("Missing session ID")
+            return flask.Response('Missing session ID', 400)
+        try:
+            image_bucket = flask.request.headers['X-IMAGE-BUCKET']
+        except Exception as e:
+            self.logger.error("Missing image bucket")
+            return flask.Response('Missing image bucket', 400)
 
         try:
-            idinfo = client.verify_id_token(token, sk.GOOGLE_OAUTH2_CLIENT_ID)
-            if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-                raise crypt.AppIdentityError("Wrong issuer.")
-        except crypt.AppIdentityError:
-                # Invalid token
-            return flask.Response('Application identity error.', 405)
-        user_id = idinfo['sub']
-        hash_id = hashlib.sha256(user_id).hexdigest()
+            cc0_agree = flask.request.headers['X-CC0-AGREE']
+            if cc0_agree != 'true':
+                raise ValueError('Must accept cc0')
+        except Exception as e:
+            self.logger.error("Missing CC0 agreement")
+            return flask.Response('Missing CC0 agreement', 400)
+
+        try:
+            public_agree = flask.request.headers['X-PUBLIC-AGREE']
+            if public_agree != 'true':
+                raise ValueError('Must accept public database')
+        except Exception as e:
+            self.logger.error("Missing public dataset agreement")
+            return flask.Response('Missing public dataset agreement', 400)
+
+        # TODO(dek): read and update hashlib object using fix-sized buffers to avoid memory blowup
+        # Read the content of the upload completely, before returning an error.
+        file_ = flask.request.files['file']
+        original_filename = file_.filename
+        self.logger.info("Reading upload stream")
+        content = file_.stream.read()
+        self.logger.info("Read upload stream")
+
+        result = flask_users.authn_check(flask.request.headers)
+        if isinstance(result, flask.Response):
+            self.logger.error("Failed auth check")
+            return result
+        userid_hash = users.get_userid_hash(result)
+        if not users.check_if_user_exists(datastore_client, userid_hash):
+            self.logger.error("Failed profile check")
+            return self.Response('Profile required to upload images.', status=400)
+        r = roles.get_user_role(datastore_client, userid_hash)
+
+        # Check for a valid bucket.
+        valid_bucket = False
+        if image_bucket == 'app':
+            valid_bucket = True
+        elif image_bucket == 'megamovie' or image_bucket == 'volunteer_test':
+            valid_bucket = self._check_role_in_roles(r, VALID_MEGAMOVIE_UPLOADER_ROLES)
+        elif image_bucket == 'teramovie':
+            valid_bucket = self._check_role_in_roles(r, VALID_TERAMOVIE_UPLOADER_ROLES)
+        else:
+            # Not a known bucket.
+            valid_bucket = False
+
+        if not valid_bucket:
+            self.logger.error("Failed bucket check")
+            return self.Response('Valid role required to upload images to this bucket, or bucket is unknown', status=400)
 
         content_type = self.request.content_type
 
-        datastore_client = self.datastore.Client(self.config['PROJECT_ID'])
-        batch = datastore_client.batch()
+        name = hashlib.sha256(content).hexdigest()
+        self.logger.info("Received image with digest: %s" % name)
+        # Local file system file paths
+        local_file = self.os.path.join(self._dir, name)
+        temp_file = local_file + self._file_not_ready_suffix
+        try:
+            open(temp_file, "wb").write(content)
+        except IOError as e:
+            self.logger.error('Error occured writing to file: {0}'.format(e))
+            return self.Response('Failed to save file.',
+                                 status=constants.HTTP_ERROR)
+        del content
 
-        for file_ in self.request.files.getlist('datafile'):
-            # In case an error occured and the filename was not sent
-            # filename = self.request.headers.get(constants.HTTP_FILENAME_HEADER) or ''
-            filename = file_.filename
-            ext = self.os.path.splitext(filename)[1].strip('.')
-            name = '.'.join((str(uuid4()), ext))
 
-            entity = self._create_datastore_entry(datastore_client, name, user=hash_id)
+        metadata = _extract_exif_metadata(temp_file)
+        result = {}
+        if metadata.has_key('lat'):
+            result['lat'] = metadata['lat']
+        if metadata.has_key('lon'):
+            result['lon'] = metadata['lon']
 
-            if entity:
-                batch.put(entity)
-
-            # Local file system file paths
-            local_file = self.os.path.join(self._dir, name)
-            temp_file = local_file + self._file_not_ready_suffix
-
+        key = datastore_client.key(self._datastore_kind, name)
+        entity = datastore_client.get(key)
+        if entity is not None:
+            if 'user' in entity:
+                if entity['user'] == datastore_client.key(self._user_datastore_kind, userid_hash):
+                    entity['upload_session_id'] = upload_session_id
+                    datastore_client.put(entity)
+            else:
+                self.logger.error('Duplicate detected but incomplete datastore record')
             try:
-                self._write_data_to_file(temp_file, file_)
-
-            except IOError as e:
-                self.logger.error('Error occured writing to file: {0}'.format(e))
-                return self.Response('Failed to save file.',
-                                     status=constants.HTTP_ERROR)
-
-            except ClientDisconnected:
-                # This error will occur if Gunicorn/Flask fails to respond before
-                # the load balancer times the request out. In this situation, the
-                # load balancer responds to the client with a 502 error, however
-                # this is not detected by Flask until it reads to the end of the
-                # buffered request from nginx at which point this exception will be
-                # thrown by the call to self.request.stream.read in
-                # _write_data_to_file.
-                try:
-                    self.util.retry_func(self.os.remove, self._retrys,
-                                         (OSError, ), temp_file)
-                except RuntimeError:
-                    pass
-                self.logger.error('Upload failed. Client disconnected.')
-                return self.Response(status=constants.HTTP_ERROR)
-
+                os.remove(temp_file)
+            except OSError as e:
+                self.logger.error('Unable to remove file: {0}'.format(e))
+            result['warning'] = 'Duplicate file upload.'
+            return flask.jsonify(**result)
+        entity = self._create_datastore_entry(
+            datastore_client, name, original_filename, user=userid_hash,
+            upload_session_id=upload_session_id, image_bucket=image_bucket,
+            cc0_agree=cc0_agree, public_agree=public_agree)
+        entity.update(metadata)
+        if not entity:
+            self.logger.error('Unable to create datastore entry for %s' % name)
             try:
-                self.util.retry_func(self.os.rename, self._retrys,
-                                     (OSError, ), temp_file, local_file)
-            except RuntimeError:
-                return self.Response('Failed to save file.',
-                                     status=constants.HTTP_ERROR)
+                os.remove(temp_file)
+            except OSError as e:
+                self.logger.error('Unable to remove file: {0}'.format(e))
+            return self.Response('Failed to save file.',
+                                 status=constants.HTTP_ERROR)
+        try:
+            datastore_client.put(entity)
+        except Exception as e:
+            self.logger.error('Unable to create datastore entry for %s: %s' % (name, str(e)))
+            try:
+                os.remove(temp_file)
+            except OSError as e:
+                self.logger.error('Unable to remove file: {0}'.format(e))
+            return self.Response('Failed to save file.',
+                                 status=constants.HTTP_ERROR)
 
         try:
-            batch.commit()
-        except FailedToSaveToDatastoreError as e:
-            self.logger.error(str(e))
-            # Continue on for now. The upload daemon will create a datastore
-            # entity if it doesn't find one, it will just be missing the user
-            # information.
+            os.rename(temp_file, local_file)
+        except Exception as e:
+            self.logger.error('Error occured rename file: {0}'.format(e))
+            try:
+                os.remove(temp_file)
+            except OSError as e:
+                self.logger.error('Unable to remove file: {0}'.format(e))
+            return self.Response('Failed to save file.',
+                                 status=constants.HTTP_ERROR)
 
-        return self.Response(status=constants.HTTP_OK)
 
-        def _create_datastore_entry(self, datastore_client, filename, user=None):
-            """
-            Creates and returns a datastore entity for a file with name filename
-            uploaded by user user.
-            Filename should be the new name we have generated that is <uuid>.<ext>.
-            Raises FailedToSaveToDatastoreError if unsuccessful.
-            """
+        return flask.jsonify(**result)
+
+    def _create_datastore_entry(self, datastore_client, filename, original_filename, user=None,
+                                upload_session_id=None, image_bucket=None, cc0_agree=False, public_agree=False):
+        """
+        Creates and returns a datastore entity for a file with name filename
+        uploaded by user user.
+        Filename should be the new name we have generated that is <uuid>.<ext>.
+        Raises FailedToSaveToDatastoreError if unsuccessful.
+        """
         # Create datastore entity
         key = datastore_client.key(self._datastore_kind, filename)
-        entity = self.datastore.Entity(key=key)
+        entity = self.datastore.Entity(key=key,
+                                       exclude_from_indexes = ["exif_json"])
 
         # Set datastore entity data
         entity['user'] = datastore_client.key(self._user_datastore_kind, user)
+        entity['upload_session_id'] = upload_session_id
+        entity['confirmed_by_user'] = False
+        entity['original_filename'] = original_filename
         entity['in_gcs'] = False
         entity['processed'] = False
         entity['uploaded_date'] = self.datetime.now()
+        entity['image_bucket'] = image_bucket
+        entity['cc0_agree'] = cc0_agree;
+        entity['public_agree'] = public_agree
 
         if not ds.validate_data(entity, True, ds.DATASTORE_PHOTO):
-            msg = 'Invalid entity: {0}'.format(entity)
+            self.logger.error('Invalid entity: {0}'.format(entity))
             return None
-
         return entity
 
-    def _write_data_to_file(self, filename, stream):
-        """
-        Read in upload data in chunks and save to temp file.
-        """
-        with open(filename, 'wb') as f:
-            while True:
-                chunk = stream.read(8 * constants.MB)
-                if len(chunk) == 0:
-                    break
-                f.write(chunk)
+    def _check_role_in_roles(self, user_roles, allowed_roles):
+        valid_role = False
+        for role in user_roles:
+            if role in allowed_roles:
+                valid_role = True
+                break
+        return valid_role

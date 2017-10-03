@@ -17,7 +17,7 @@ import logging
 import time
 import os
 
-from gcloud import datastore, storage
+from google.cloud import datastore, storage
 
 from common import config, constants
 from common import datastore_schema as ds
@@ -32,6 +32,9 @@ def main(sleep_time=constants.IMAGE_PROCESSOR_DAEMON_SLEEP_TIME_S):
 
     logging.basicConfig(level=logging.INFO,
                         format=constants.LOG_FMT_S_THREADED)
+
+    logging.info("Reading images from " + config.GCS_BUCKET)
+    logging.info("Writing images from " + config.GCS_PROCESSED_PHOTOS_BUCKET)
 
     #Get current projects storage and datastore client
     credentials = sa.get_credentials()

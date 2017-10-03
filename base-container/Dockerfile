@@ -24,7 +24,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN sed -i -e 's/archive.ubuntu.com/mirrors.kernel.org/g' /etc/apt/sources.list && \
     apt-get update -y && \
     apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends apt-utils curl iputils-ping telnet netcat-traditional python-setuptools python-pip  && \
+    apt-get install -y --no-install-recommends apt-utils curl iputils-ping telnet netcat-traditional python-setuptools python-pip libraw-dev && \
     pip install --upgrade pip && \
     pip install -r /tmp/requirements.txt && \
     apt-get clean && rm -rf /tmp/* /var/tmp/*

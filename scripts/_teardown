@@ -18,6 +18,10 @@ echo "Tearing down deployment..."
 
 if [[ $LOCAL_DEV != true ]]; then
   # TODO(dek): support APP selector here to selectively restart some containers.
+  if  [[ -z $APP || $APP == static-nginx ]]; then
+    kubectl delete service --ignore-not-found static-nginx
+    kubectl delete -f build/static-nginx/deployment.yaml --ignore-not-found
+  fi
   if [[ -z $APP || $APP == profile-server || $APP == profile-nginx ]]; then
     kubectl delete service --ignore-not-found profile
     kubectl delete -f build/profile/deployment.yaml --ignore-not-found
@@ -26,11 +30,19 @@ if [[ $LOCAL_DEV != true ]]; then
     kubectl delete service --ignore-not-found admin
     kubectl delete -f build/admin/deployment.yaml --ignore-not-found
   fi
-  if  [[ -z $APP || $APP == upload-server || $APP == upload-nginx ]]; then
+  if  [[ -z $APP || $APP == geo-server || $APP == geo-nginx ]]; then
+    kubectl delete service --ignore-not-found geo
+    kubectl delete -f build/geo/deployment.yaml --ignore-not-found
+  fi
+  if  [[ -z $APP || $APP == upload-server || $APP == upload-nginx || $APP == upload-daemon ]]; then
     kubectl delete service --ignore-not-found upload
     kubectl delete -f build/upload/deployment.yaml --ignore-not-found
   fi
 
+  if [[ -z $APP || $APP == photo-server || $APP == photo-nginx ]]; then
+    kubectl delete service --ignore-not-found photo
+    kubectl delete -f build/photo/deployment.yaml --ignore-not-found
+  fi
   if [ "$UNRELEASED" == "true" ]; then
     if  [[ -z $APP || $APP == movie ]]; then
       kubectl delete service --ignore-not-found movie
@@ -40,25 +52,25 @@ if [[ $LOCAL_DEV != true ]]; then
       kubectl delete service --ignore-not-found image-processor
       kubectl delete -f build/image-processor/deployment.yaml --ignore-not-found
     fi
-    if  [[ -z $APP || $APP == static-nginx ]]; then
-      kubectl delete service --ignore-not-found static-nginx
-      kubectl delete -f build/static-nginx/deployment.yaml --ignore-not-found
-    fi
   fi
 else
   IMAGES="profile-server \
           profile-nginx \
           admin-server \
           admin-nginx \
+          geo-server \
+          geo-nginx \
           datastore-emulator \
           static-nginx \
-          nginx-lb-emulator"
+          nginx-lb-emulator \
+          upload-server \
+          upload-nginx \
+          upload-daemon \
+          photo-server \
+          photo-nginx"
 
   if [ "$UNRELEASED" == "true" ]; then
     IMAGES="$IMAGES \
-      upload-server \
-      upload-nginx \
-      upload-daemon \
       image-processor-daemon \
       movie-daemon"
   fi

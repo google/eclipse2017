@@ -1,10 +1,12 @@
 daemon                              off;
 user                                www-data;
-worker_processes                    4;
+worker_processes                    auto;
 pid                                 /run/nginx.pid;
 
 events {
+    use epoll;
     worker_connections              4096;  ## Default: 1024
+    multi_accept                    on;
 }
 
 http {
@@ -51,18 +53,55 @@ http {
 
             include 'cors.conf';
         }
-        location /services/admin/users/ {
+        location /services/admin/ {
             proxy_set_header        Host $host;
             proxy_set_header        X-Real-IP $remote_addr;
             proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header        X-Forwarded-Proto $scheme;
-            proxy_pass              http://admin-nginx:80/services/admin/users/;
+            proxy_pass              http://admin-nginx:80/services/admin/;
             proxy_read_timeout      90s;
             proxy_redirect          off;
 
             client_max_body_size    100m;
             include 'cors.conf';
         }
-        {{UNRELEASED}}
+        location /services/geo/ {
+            proxy_set_header        Host $host;
+            proxy_set_header        X-Real-IP $remote_addr;
+            proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header        X-Forwarded-Proto $scheme;
+            proxy_pass              http://geo-nginx:80/services/geo/;
+            proxy_read_timeout      90s;
+            proxy_redirect          off;
+
+            client_max_body_size    100m;
+
+            include 'cors.conf';
+        }
+        location /services/upload {
+            proxy_set_header    Host $host;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    X-Forwarded-Proto $scheme;
+            proxy_pass          http://upload-nginx:80/services/upload;
+            proxy_read_timeout      90s;
+            proxy_redirect      off;
+            client_max_body_size    100m;
+
+            include 'cors.conf';
+        }
+        location /services/photo {
+            proxy_set_header    Host $host;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    X-Forwarded-Proto $scheme;
+            proxy_pass          http://photo-nginx:80/services/photo;
+            proxy_read_timeout      90s;
+            proxy_redirect      off;
+
+            client_max_body_size    100m;
+
+            include 'cors.conf';
+        }
     }
 }

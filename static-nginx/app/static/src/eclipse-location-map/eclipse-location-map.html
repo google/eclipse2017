@@ -16,12 +16,17 @@ limitations under the License.
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/google-map/google-map.html">
 <link rel="import" href="../../bower_components/google-map/google-map-search.html">
+<link rel="import" href="../../bower_components/paper-autocomplete/paper-autocomplete.html">
 <link rel="import" href="../../bower_components/paper-styles/color.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../behaviors/eclipse-date-aware-behavior.html">
 <script src="../client-id.js"></script>
 <script src="eclipse_path.js"></script>
 <dom-module id="eclipse-location-map">
   <template>
+
+    <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
+
     <style includes="shared-styles">
       :host {
       }
@@ -39,7 +44,7 @@ limitations under the License.
       }
     </style>
     <paper-autocomplete id="locationField"
-        label="Planned eclipse watching location"
+        label="{{_getLocationFieldLabel(eclipseState)}}"
         remote-source="true" min-length="3"
         on-autocomplete-selected="_onSelect"
         on-autocomplete-change="_onChange"
@@ -63,9 +68,15 @@ limitations under the License.
         Polymer({
           is: 'eclipse-location-map',
 
+          behaviors: [EclipseBehaviors.DateAwareBehavior],
+
           properties : {
             location : {
               type: String,
+              notify: true
+            },
+            geocodedLocation : {
+              type: Array,
               notify: true
             },
             totality: {
@@ -79,6 +90,9 @@ limitations under the License.
             markerVisible: {
               type: Boolean,
               notify: true
+            },
+            map: {
+              type: Object
             }
           },
           observers: [
@@ -106,7 +120,7 @@ limitations under the License.
 
               this._setMarkerAndMap(firstResult.geometry.location.lat(), firstResult.geometry.location.lng());
             } else {
-              this.markerVisible = false;
+              this._clearMarker();
             }
           },
 
@@ -118,7 +132,7 @@ limitations under the License.
                 placeId: event.detail.value.place_id
               }, this._handlePlaceDetail.bind(this));
             } else {
-              this.markerVisible = false;
+              this._clearMarker();
             }
           },
 
@@ -158,6 +172,7 @@ limitations under the License.
             marker.latitude = lat;
             marker.longitude = lng;
             this.markerVisible = true;
+            this.geocodedLocation = [marker.latitude, marker.longitude];
             this.$.locationMap.zoom = 8;
             this._checkTotality();
           },
@@ -168,6 +183,7 @@ limitations under the License.
             marker.longitude = event.detail.latLng.lng();
             this.markerVisible = true;
             this.location = marker.latitude + "," + marker.longitude;
+            this.geocodedLocation = [marker.latitude, marker.longitude];
             this._checkTotality();
           },
           _createPath: function() {
@@ -203,7 +219,18 @@ limitations under the License.
           _handleLocationChanged: function() {
             if (!this.location || this.location.length < 3) {
               // Clear the marker if the location is bogus.
-              this.markerVisible = false;
+              this._clearMarker();
+            }
+          },
+          _clearMarker: function() {
+            this.markerVisible = false;
+            this.geocodedLocation = null;
+          },
+          _getLocationFieldLabel: function(eclipseState) {
+            if (eclipseState == this.PRE_ECLIPSE_DAY) {
+              return "Planned eclipse watching location";
+            } else {
+              return "Eclipse viewing location";
             }
           }
         });

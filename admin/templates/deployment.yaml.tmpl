@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: admin
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       tier: admin-backend
@@ -32,10 +32,10 @@ spec:
           resources:
               limits:
                   cpu: 1000m
-                  memory: 1000M
+                  memory: 2G
               requests:
-                  cpu: 1000m
-                  memory: 1000M
+                  cpu: 100m
+                  memory: 2G
         - name: admin-nginx
           image: {{GCR_PREFIX}}/admin-nginx
           ports:
@@ -50,8 +50,8 @@ spec:
                   port: 80
           resources:
               limits:
-                  cpu: 500m
-                  memory: 1000M
+                  cpu: 1000m
+                  memory: 128M
               requests:
-                  cpu: 500m
-                  memory: 1000M
+                  cpu: 100m
+                  memory: 128M

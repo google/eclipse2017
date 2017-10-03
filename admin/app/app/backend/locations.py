@@ -14,12 +14,12 @@
 
 import flask
 
-from gcloud.exceptions import GCloudError
-from gcloud import datastore
+from google.cloud import datastore
 
 from app_module import AppModule
 from common import roles
 from common import users
+from common import flask_users
 
 
 class Locations(AppModule):
@@ -30,32 +30,41 @@ class Locations(AppModule):
         super(Locations, self).__init__(**kwargs)
         self.name = 'locations'
         self.import_name = __name__
-        self.roles = roles.Roles()
-        self.users = users.Users()
 
         self._routes = (
             ('/', 'root', self.root, ('GET',)),)
 
     def root(self):
         client = self._get_datastore_client()
-        result = self.users.authn_check(flask.request.headers)
+        result = flask_users.authn_check(flask.request.headers)
         if isinstance(result, flask.Response):
             return result
-        userid_hash = self.users.get_userid_hash(result)
-        if not self.users.check_if_user_exists(client, userid_hash):
+        userid_hash = users.get_userid_hash(result)
+        if not users.check_if_user_exists(client, userid_hash):
             return flask.Response('User does not exist', status=404)
-        result = self.roles._check_if_user_is_admin(client, userid_hash)
+        result = roles._check_if_user_is_admin(client, userid_hash)
         if isinstance(result, flask.Response):
             return result
         if result is False:
             return flask.Response('Permission denied', status=403)
-        query = client.query(kind="User")
-        entities = query.fetch()
+
         locations = []
-        for entity in entities:
-          if entity.has_key('location'):
-            location = entity['location']
-            locations.append('[' + location + ']')
-        return flask.Response('{ "locations": [' + ', '.join(locations) + '] }', status=200)
+        query = client.query(kind="User")
+        cursor = None
+        while True:
+            entities_count = 0
+            entities = query.fetch(start_cursor=cursor, limit=1000)
+            for entity in entities:
+                entities_count += 1
+                if entity.has_key('geocoded_location'):
+                    location = entity['geocoded_location']
+                    locations.append(location)
+
+            if entities_count < 1000:
+                break
+            cursor = entities.next_page_token
+
+        s = flask.jsonify(locations)
+        return s
 
 locations = Locations()

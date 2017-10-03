@@ -25,6 +25,7 @@ limitations under the License.
             }
             .content-wrapper {
               color: var(--white-text, #f1f1f1);
+              background-color: var(--box-background-color, transparent);
               margin: 12px;
               font-size: 1rem;
               max-width: var(--eclipse-text-box-max-width, 400px);
@@ -34,11 +35,11 @@ limitations under the License.
 
             .title {
               margin-bottom: 24px;
-              @apply(--paper-font-display1)
+              @apply(--paper-font-display1);
             }
 
             .body {
-              @apply(--paper-font-body1)
+              @apply(--paper-font-body1);
             }
 
             .markdown-html a:hover {
@@ -51,8 +52,7 @@ limitations under the License.
             }
         </style>
         
-		<div class="content-wrapper" style$='background-color: {{bg}};'>
-      <!-- TODO: put internationalization elements here.-->
+		<div class="content-wrapper">
 			<div class="title">{{title}}</div>
       <template is="dom-if" if="{{hasLinksInBody}}">
         <marked-element class="body" markdown="{{body}}">

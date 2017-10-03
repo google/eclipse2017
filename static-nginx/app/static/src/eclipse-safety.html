@@ -15,6 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
 <link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
 <link rel="import" href="eclipse-scroll-button/eclipse-scroll-button.html">
@@ -80,8 +81,17 @@ limitations under the License.
         right:0;
         bottom: 0;
       }
-    </style>
 
+      h2 {
+        @apply(--paper-font-headline);
+      }
+
+      h3 {
+        @apply(--paper-font-subhead);
+        margin-top:24px;
+      }
+    </style>
+    <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
     <!-- Safety page content -->
     <div id="main">
       <div class="image-holder">
@@ -91,9 +101,9 @@ limitations under the License.
         <div class="safety-content">
           <h2>Solar Viewing Glasses</h2>
 
-          <p>Please make sure to view the 2017 total solar eclipse safely and never look at the Sun without protection, such as the solar viewing glasses pictured here. Many <a href='http://www.astc.org/about-astc/about-science-centers/find-a-science-center/' target='_blank'>science museums</a>, <a href='http://www.starnetlibraries.org/' target='_blank'>libraries</a>, and <a href='https://nightsky.jpl.nasa.gov/' target='_blank'>astronomy clubs</a> are distributing or selling eclipse viewing glasses.</p>
+          <p>Please make sure to view any total solar eclipse safely and never look at the Sun without protection, such as the solar viewing glasses pictured here. Many <a href='http://www.astc.org/about-astc/about-science-centers/find-a-science-center/' target='_blank'>science museums</a>, <a href='http://www.starnetlibraries.org/' target='_blank'>libraries</a>, and <a href='https://nightsky.jpl.nasa.gov/' target='_blank'>astronomy clubs</a> are distributing or selling eclipse viewing glasses.</p>
 
-          <p>Solar viewing glasses can also be purchased directly from manufacturers like <a href="https://www.rainbowsymphony.com/eclipse-glasses/" target="_blank">Rainbow Symphony</a> and <a href="http://www.eclipseglasses.com/" target="_blank">American Paper Optics.</a> </p>
+          <p>Solar viewing glasses can also be purchased directly from manufacturers like <a href="https://www.rainbowsymphony.com/eclipse-glasses/" target="_blank">Rainbow Symphony</a> and <a href="http://www.eclipseglasses.com/" target="_blank">American Paper Optics</a>, and <a href="https://www.bhphotovideo.com/c/buy/solar-eclipse-glasses-accessories/ci/32948/N/3537585258" target="_blank">B&amp;H Photo Video</a>.</p>
 
           <p>But no matter where you get your eclipse glasses, you must know how to use them properly.</p>
           <h3>Here are some tips from the Megamovie team:</h3>

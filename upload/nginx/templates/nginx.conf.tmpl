@@ -1,10 +1,12 @@
 daemon                              off;
 user                                www-data;
-worker_processes                    4;
+worker_processes                    auto;
 pid                                 /run/nginx.pid;
 
 events {
+    use epoll;
     worker_connections              4096;  ## Default: 1024
+    multi_accept                    on;
 }
 
 http {
@@ -13,16 +15,26 @@ http {
     proxy_buffers                   4 256k;
     proxy_busy_buffers_size         256k;
 
+    client_max_body_size            100m;
+    client_header_buffer_size       16k;
+    client_body_buffer_size         32k;
+    large_client_header_buffers     4 32k;
+    client_body_timeout             650;
+    client_header_timeout           650;
+
     ##
     # Basic Settings
     ##
     sendfile                        on;
     tcp_nopush                      on;
     tcp_nodelay                     on;
-    keepalive_timeout               65;
     types_hash_max_size             2048;
     include                         /etc/nginx/mime.types;
     default_type                    application/octet-stream;
+
+    # Tune nginx keepalives to work with the GCP HTTP(S) Load Balancer:
+    keepalive_timeout 650;
+    keepalive_requests 10000;
 
     ##
     # Logging Settings
@@ -65,11 +77,11 @@ http {
             proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header        X-Forwarded-Proto $scheme;
             proxy_pass              http://{{UPLOAD_SERVER_HOSTNAME}}:8080;
-            proxy_read_timeout      90s;
+            proxy_read_timeout      650s;
             proxy_redirect          off;
+            proxy_request_buffering on;
 
             expires                 -1;
-            client_max_body_size    100m;
         }
     }
 }

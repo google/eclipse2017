@@ -32,5 +32,17 @@ spec:
                 backend:
                     serviceName: profile
                     servicePort: 80
+              - path: /services/admin/*
+                backend:
+                    serviceName: admin
+                    servicePort: 80
+              - path: /services/geo/*
+                backend:
+                    serviceName: geo
+                    servicePort: 80
+              - path: /services/photo/*
+                backend:
+                    serviceName: photo
+                    servicePort: 80
     tls:
       - secretName: eclipse2017

@@ -21,10 +21,48 @@ from itertools import compress
 
 import os
 
-from gcloud import datastore, storage
+from google.cloud import datastore, storage
 from common import config, constants
 from common import datastore_schema as ds
 import common.service_account as sa
+from common.chunks import chunks
+
+def get_file_from_gcs(fname):
+    """
+    Download all new files from GCS bucket w/ url <src> to destination folder.
+    Must be outside of pipeline class for use as multiprocess map worker
+    """
+    storage_client = storage.client.Client(project=config.PROJECT_ID, \
+                                           credentials=sa.get_credentials())
+
+    fpath = '{0}/{1}'.format(constants.MOVIE_DATA_DIR, fname)
+    if os.path.exists(fpath):
+        logging.info("Already downloaded file %s" % fpath)
+        return True
+
+    try:
+        blob = storage_client.get_bucket(config.GCS_PROCESSED_PHOTOS_BUCKET).get_blob(fname)
+    except Exception, e:
+        msg = 'Failed to download {0} from Cloud Storage.'
+        logging.exception(msg.format(fname))
+        return False
+
+    if blob:
+        # Get files
+        with open(fpath, 'w+') as file_obj:
+            try:
+                blob.download_to_file(file_obj)
+                msg = 'Successfully downloaded {0} from GCS'
+                logging.info(msg.format(fname))
+            except Exception, e:
+                msg = 'Failed to download {0} from Cloud Storage.'
+                logging.exception(msg.format(fname))
+                return False
+        return True
+    else:
+        msg = 'Failed to download blob {0} from Cloud Storage.'
+        logging.exception(msg.format(config.GCS_PROCESSED_PHOTOS_BUCKET))
+        return False
 
 class Pipeline():
 

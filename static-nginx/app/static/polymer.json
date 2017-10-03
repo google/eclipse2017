@@ -8,17 +8,25 @@
     "src/eclipse-profile.html",
     "src/eclipse-resources.html",
     "src/eclipse-safety.html",
+    "src/eclipse-simulator.html",
     "src/eclipse-view404.html",
-    "src/eclipse-admin.html"
+    "src/eclipse-faq.html",
+    "src/eclipse-admin.html",
+    "src/eclipse-review.html",
+    "src/eclipse-instructions.html",
+    "src/eclipse-certificate.html"
   ],
-  "sourceGlobs": [
+  "sources": [
     "sitemap.xml",
     "src/**/*",
     "images/**/*",
     "bower.json"
   ],
-  "includeDependencies": [
+  "extraDependencies": [
     "manifest.json",
     "bower_components/webcomponentsjs/webcomponents-lite.min.js"
-  ]
+  ],
+  "lint" : {
+    "rules": ["polymer-1"]
+  }
 }

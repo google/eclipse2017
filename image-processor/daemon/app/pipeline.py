@@ -22,26 +22,13 @@ from itertools import compress
 import os
 import random
 import cv2
-from gcloud import datastore, storage
+from google.cloud import datastore, storage
 from common import config, constants
 from common import datastore_schema as ds
-
-HD_MAX_X = 1920
-HD_MAX_Y = 1080
-
-def getRescaledDimensions(image, max_w, max_h):
-    image_h, image_w = image.shape[:2]
-    given_ratio = max_w / float(max_h)
-    ratio = image_w / float(image_h)
-    if ratio > given_ratio:
-        first = max_w
-    else:
-        first = int(round(ratio * float(max_h)))
-    if ratio <= given_ratio:
-        second = max_h
-    else:
-        second = int(round(ratio * float(max_w)))
-    return first, second
+from common.find_circles import findCircles
+import numpy as np
+from eclipse_gis import eclipse_gis
+from shapely.geometry import Point
 
 def get_file_from_gcs(storage_client, fname):
     """
@@ -81,6 +68,10 @@ class Pipeline():
         self.datastore = datastore_client
         self.storage = storage_client
 
+        times, points = eclipse_gis.load_stripped_data(open("/app/data/eclipse_data.txt").readlines())
+        boundary, center_line = eclipse_gis.generate_polygon(points)
+        self.eclipse_gis = eclipse_gis.EclipseGIS(boundary, center_line)
+
     def scan(self, entity_kind):
         """
         Scans datastore for all <kind> entities. A list of all
@@ -91,6 +82,7 @@ class Pipeline():
         # that are in_gcs=true, and processed=false
         query = self.datastore.query(kind=entity_kind, \
                                      filters=[("in_gcs","=", True),
+                                              ("confirmed_by_user","=",True),
                                               ("processed","=",False)])
 
         # Fetch keys only, no need for other entity properties
@@ -110,26 +102,58 @@ class Pipeline():
     def process(self, fnames):
         processed_fnames = []
         for fname in fnames:
-            local_fname = get_file_from_gcs(self.storage, fname)
+            try:
+                local_fname = get_file_from_gcs(self.storage, fname)
+            except Exception as e:
+                logging.error("Failed to download: %s" % fname)
+                continue
             if local_fname == None:
-                print "failed to download", fname
+                logging.error("Failed to download: %s" % fname)
                 continue
             fpath = '{0}/{1}'.format(constants.IMAGE_PROCESSOR_DATA_DIR, local_fname)
 
-
-            if fpath.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image = cv2.imread(fpath)
-                w, h = getRescaledDimensions(image, HD_MAX_X, HD_MAX_Y)
-                resized_image = cv2.resize(image, (w, h))
-                name, ext = os.path.splitext(local_fname)
-                new_fpath = '{0}/{1}{2}'.format(constants.IMAGE_PROCESSOR_DATA_DIR, name, ext)
-                cv2.imwrite(new_fpath, resized_image)
-                processed_fnames.append(fname)
-                msg = 'Successfully processed {0}'
-                logging.info(msg.format(fpath))
+            image = cv2.imread(fpath)
+            result = findCircles(image)
+            if result is not None:
+                cx, cy, r = result
+                image_cols, image_rows, _ = image.shape
+                if cx - r >= 0 and cx + r < image_rows and cy - r >= 0 and cy + r < image_cols:
+                    center_y = image_cols / 2
+                    center_x = image_rows / 2
+                    dx = (center_x-cx)
+                    dy = (center_y-cy)
+                    M = np.float32([[1,0,dx],[0,1,dy]])
+                    # Translate center of sun to center of image
+                    image = cv2.warpAffine(image,M,(image_rows,image_cols))
+                    image_cols, image_rows, _ = image.shape
+                    ratio = 100. / r
+                    first = int(round(image_cols * ratio))
+                    second = int(round(image_rows * ratio))
+                    # Scale image so sun is 100 pixels
+                    image = cv2.resize(image, (second, first))
+                    if image_rows > second and image_cols > first:
+                        border_x = int(round((image_rows - second)/2.))
+                        border_y = int(round((image_cols - first)/2.))
+                        image = cv2.copyMakeBorder(image, border_y, border_y,
+                                                   border_x, border_x,
+                                                   cv2.BORDER_CONSTANT, value=[0,0,0])
+                    elif image_rows < second and image_cols < first:
+                        border_x = int(round((second - image_rows)/2.))
+                        border_y = int(round((first - image_cols)/2.))
+                        image = image[border_y:first-border_y, border_x:second-border_x]
+                    else:
+                        logging.error("Unsupported: %s" % str((image_rows, second, image_cols, first)))
+                        raise RuntimeError
+                    name, ext = os.path.splitext(local_fname)
+                    new_fpath = '{0}/{1}{2}'.format(constants.IMAGE_PROCESSOR_DATA_DIR, name, ext)
+                    cv2.imwrite(new_fpath + ".jpeg", image)
+                    os.rename(new_fpath + ".jpeg", fpath)
+                    processed_fnames.append(fname)
+                    logging.info('Successfully processed {0}'.format(fpath))
+                else:
+                    logging.info("Unsuccessfully processed {0}: eclipse clipped by edge".format(fpath))
             else:
-                msg = 'Failed to process {0}'
-                logging.error(msg.format(fpath))
+              logging.info("Unsuccessfully processed {0}: no eclipse circle found")
         return processed_fnames
 
     def upload(self, fnames):
@@ -137,6 +161,7 @@ class Pipeline():
 
         bucket = self.storage.get_bucket(config.GCS_PROCESSED_PHOTOS_BUCKET)
         batch = self.datastore.batch()
+        batch.begin()
 
         for fname in fnames:
             name, ext = os.path.splitext(fname)
@@ -165,7 +190,17 @@ class Pipeline():
                 oriented_entity = datastore.Entity(oriented_key)
                 oriented_entity['original_photo'] = photo_key
                 oriented_entity['image_type'] = unicode(ds.TOTALITY_IMAGE_TYPE)
-                oriented_entity[ds.TOTALITY_ORDERING_PROPERTY] = random.random()
+                lat = photo_entity['lat']
+                lon = photo_entity['lon']
+                # TODO(dek): properly repsect LatRef and LonRef here
+                lon = -lon
+                p = Point(lat, lon)
+                np = self.eclipse_gis.interpolate_nearest_point_on_line(p)
+                # TODO(dek):
+                # map each location into its associated center point
+                # (based on the golden data in eclipse_gis)
+                # and sort by location/time bins
+                oriented_entity[ds.TOTALITY_ORDERING_PROPERTY] = np
                 batch.put(oriented_entity)
 
         # Cloud Datastore API request

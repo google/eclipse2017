@@ -87,7 +87,7 @@ def main():
       html = response.read()
       doc = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
       data =  doc.body.find('pre').text.replace("\r", "\n").split("\n")
-      points = eclipse_gis.load_data(data)
+      times, points = eclipse_gis.load_data(data)
       kml_f = open(args.kml_output_file, "w")
       tsv_f = open(args.tsv_output_file, "w")
       kml_f.write(KML_HEADER)

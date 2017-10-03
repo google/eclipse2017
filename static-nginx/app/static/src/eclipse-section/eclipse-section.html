@@ -15,6 +15,7 @@ limitations under the License.
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 
 <dom-module id="eclipse-section">
     <template>
@@ -43,10 +44,13 @@ limitations under the License.
              @apply(--content-width);
              padding: 32px;
              position:relative;
+             @apply(--layout-wrap);
           }
 
           .content-wrapper ::content img {
             max-width:100%;
+            min-width:40%;
+            @apply(--layout-flex-2);
           }
 
           .start {
@@ -54,7 +58,7 @@ limitations under the License.
           }
 
           .end {
-            @apply(--layout-end-justified)
+            @apply(--layout-end-justified);
           }
 
           .center {
@@ -65,27 +69,17 @@ limitations under the License.
             @apply(--layout-flex);
           }
 
-          @media all and (min-width:600px) {
-            .content-wrapper ::content > img {
-              max-width:calc(100% - 500px);
-            }
-          }
-
-          @media all and (max-width:600px) {
-            .content-wrapper {
-              @apply(--layout-wrap);
-            }
-          }
-
           .background-holder {
             width:100%;
             background-size: cover;
             background-position: center;
             @apply(--layout-center);
+            background-image: var(--section-background-image, none);
+            background-color: var(--section-background-color, transparent);
           }
         </style>
-        <div class="background-holder" style$="background-image: url('{{bg}}'); background-color: {{color}}">
-            <div class$="{{size}} content-wrapper {{alignment}}" style$='flex-direction: {{layout}};)' >
+        <div id="holder" class="background-holder">
+            <div class$="{{size}} content-wrapper {{alignment}}">
               <content></content>
             </div>
         </div>
@@ -97,17 +91,37 @@ limitations under the License.
 
         properties: {
           showNavbarMin: {
-          type: String,
-          value: "900px"
+            type: String,
+            value: "900px"
+          },
+          layout: {
+            type: String,
+            value: "row"
+          },
+          alignment: {
+            type: String,
+            value: "center"
+          },
+          size: {
+            type: String,
+            value: "small"
+          },
+          color: {
+            type: String
+          },
+          bg: {
+            type: String
+          }
         },
-        layout: {
-          type: String,
-          value: "row"
-        },
-        alignment: {
-          type: String,
-          value: "center"
-        }
+
+        ready: function() {
+          if (this.color) {
+            this.customStyle["--section-background-color"] = this.color;
+          }
+          if (this.bg) {
+            this.customStyle["--section-background-image"] = "url(" + this.bg + ")";
+          }
+          this.updateStyles();
         }
       });
     </script>

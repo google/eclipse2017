@@ -16,7 +16,11 @@
 FROM {{GCR_PREFIX_WITH_SLASH}}app-container:latest
 
 ADD application.tar /app
+COPY conf/requirements.txt /tmp/requirements.txt
+RUN apt-get install -y --no-install-recommends python-pip && \
+    pip install -r /tmp/requirements.txt && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER www-data
 WORKDIR /app
-CMD ["gunicorn", "main:app", "-b", "0.0.0.0:8080", "-t", "90", "-w", "8", "--log-level", "DEBUG", "--access-logfile", "/dev/stdout", "--error-logfile", "/dev/stderr"]
+CMD ["gunicorn", "main:app", "-b", "0.0.0.0:8080", "-t", "90", "-w", "8", "--log-level", "INFO", "--access-logfile", "/dev/stdout", "--error-logfile", "/dev/stderr"]

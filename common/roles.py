@@ -13,104 +13,103 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+USER_ROLE = 'user'
 ADMIN_ROLE = 'admin'
-USER_ROLES = set(('user', ADMIN_ROLE, 'asp'))
+REVIEWER_ROLE = 'reviewer'
+VOLUNTEER_ROLE = 'volunteer'
+USER_ROLES = set((USER_ROLE, ADMIN_ROLE, REVIEWER_ROLE, VOLUNTEER_ROLE))
 from common import util
 from common import test_common
 
-from gcloud.exceptions import GCloudError
 from common.eclipse2017_exceptions import MissingUserError
-from gcloud import datastore
+from google.cloud import datastore
 import logging
 
-class Roles:
-    """
-    Class for roles profile CRUD.
-    """
-    def __init__(self):
-        pass
+def get_all_user_roles(client):
+    query = client.query(kind="UserRole")
+    query = query.fetch()
+    entities = list(query)
+    results = {}
+    for entity in entities:
+        user_id = entity.key.id_or_name
+        results[user_id] = entity['roles']
+    return results
 
-    def get_all_user_roles(self, client):
-        query = client.query(kind="UserRole")
-        query = query.fetch()
-        entities = list(query)
-        results = {}
-        for entity in entities:
-            user_id = entity.key.id_or_name
-            results[user_id] = entity['roles']
-        return results
+def get_user_role(client, user_id):
+    key = client.key("UserRole", user_id)
+    entity = client.get(key)
+    if entity is None:
+      raise MissingUserError
+    return entity['roles']
 
-    def get_user_role(self, client, user_id):
+def create_user_role(client, user_id, roles=[u'user']):
+    try:
+        if _check_if_user_role_exists(client, user_id):
+            return False
+        key = client.key("UserRole", user_id)
+        entity = datastore.Entity(key=key)
+        entity['roles'] = roles
+        client.put(entity)
+    except Exception as e:
+        logging.error("Datastore update operation failed: %s" % str(e))
+        return False
+    return True
+
+def update_user_role(client, user_id, new_roles=[u'user']):
+    try:
+        if not _check_if_user_role_exists(client, user_id):
+            return False
         key = client.key("UserRole", user_id)
         entity = client.get(key)
-        if entity is None:
-          raise MissingUserError
-        return entity['roles']
+        entity['roles'] = new_roles
+        client.put(entity)
+    except Exception as e:
+        logging.error("Datastore update operation failed: %s" % str(e))
+        return False
+    return True
 
-    def create_user_role(self, client, user_id, roles=[u'user']):
-        try:
-            if self._check_if_user_role_exists(client, user_id):
-                return False
-            key = client.key("UserRole", user_id)
-            entity = datastore.Entity(key=key)
-            entity['roles'] = roles
-            client.put(entity)
-        except GCloudError as e:
-            logging.error("Datastore update operation failed: %s" % str(e))
+def delete_user_role(client, user_id):
+    try:
+        if not _check_if_user_role_exists(client, user_id):
             return False
-        return True
-
-    def update_user_role(self, client, user_id, new_roles=[u'user']):
-        try:
-            if not self._check_if_user_role_exists(client, user_id):
-                return False
-            key = client.key("UserRole", user_id)
-            entity = client.get(key)
-            entity['roles'] = new_roles
-            client.put(entity)
-        except GCloudError as e:
-            logging.error("Datastore update operation failed: %s" % str(e))
-            return False
-        return True
-
-    def delete_user_role(self, client, user_id):
-        try:
-            if not self._check_if_user_role_exists(client, user_id):
-                return False
-            key = client.key("UserRole", user_id)
-            client.delete(key)
-        except GCloudError as e:
-            logging.error("Datastore update operation failed: %s" % str(e))
-            return False
-        return True
-
-    class RolesNotInJSON(Exception):
-        pass
-
-    def _validate_fields(self, json):
-        if 'roles' not in json:
-            raise RolesNotInJSON
-        if type(json['roles']) is not types.ListType:
-            raise ValueError
-        return True
-
-    def _check_if_user_role_exists(self, client, user_id):
-        """Returns True if User with user_id already exists."""
         key = client.key("UserRole", user_id)
-        entity = client.get(key)
+        client.delete(key)
+    except Exception as e:
+        logging.error("Datastore update operation failed: %s" % str(e))
+        return False
+    return True
 
-        return entity is not None
+class RolesNotInJSON(Exception):
+    pass
+
+def _validate_fields(json):
+    if 'roles' not in json:
+        raise RolesNotInJSON
+    if type(json['roles']) is not types.ListType:
+        raise ValueError
+    return True
+
+def _check_if_user_role_exists(client, user_id):
+    """Returns True if User with user_id already exists."""
+    key = client.key("UserRole", user_id)
+    entity = client.get(key)
+
+    return entity is not None
 
 
-    def _check_if_user_is_admin(self, client, userid_hash):
-        return ADMIN_ROLE in self.get_user_role(client, userid_hash)
+def _check_if_user_is_admin(client, userid_hash):
+    return ADMIN_ROLE in get_user_role(client, userid_hash)
 
-    def _authr_check(self, userid_hash):
-        try:
-            user_roles = self.roles.get_user_role(self._get_datastore_client(), userid_hash)
-        except MissingUserError:
-            return flask.Response('Missing user role', status=404)
-        except GCloudError as e:
-            return flask.Response('Backend error', status=500)
+def _check_if_user_has_role(client, userid_hash, roles):
+    user_roles = set(get_user_role(client, userid_hash))
+    return bool(len(roles.intersection(user_roles)))
 
-        return user_roles
+def _authr_check(userid_hash):
+    try:
+        user_roles = roles.get_user_role(_get_datastore_client(), userid_hash)
+    except MissingUserError:
+        return flask.Response('Missing user role', status=404)
+    except Exception as e:
+        return flask.Response('Backend error', status=500)
+
+    return user_roles

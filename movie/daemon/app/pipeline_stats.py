@@ -22,13 +22,13 @@ import matplotlib # Force matplotlib to not use any Xwindows backend
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
-from gcloud import datastore, storage
+from google.cloud import datastore, storage
 
 from common import datastore_schema as ds
 from common import config, constants
+from common.cluster_points import cluster_points
 
 from multiprocessing import Pool
-from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 from mpl_toolkits.basemap import Basemap
 
@@ -59,7 +59,8 @@ class Pipeline_Stats():
         """
 
         # Get number of clusters and list of labels
-        n_clusters, cluster_labels = self._get_cluster_labels(coordinates)
+        db = cluster_points(coordinates)
+        n_clusters, cluster_labels = count_clusters(db, eps=constants.CLUSTER_RADIUS_DEGREES, min_samples=constants.MIN_PHOTOS_IN_CLUSTER, n_jobs=min(len(coordinates), constants.MOVIE_DAEMON_MAX_PROCESSES))
 
         # Convert labels into list of files grouped by cluster, maintain order within cluster
         clusters = [[] for i in range(n_clusters)]
@@ -73,22 +74,6 @@ class Pipeline_Stats():
         self._create_map(coordinates, cluster_labels, n_clusters)
 
         return clusters
-
-    def _get_cluster_labels(self, coordinates):
-        """
-        Given a list of (lat, lon) tuples, function returns the number of clusters
-        in the set of coordinates and a  list of integer labels corresponding to the input coordinate
-        list
-        """
-
-        db = DBSCAN(eps=constants.CLUSTER_RADIUS_DEGREES, # 300km radius
-                    min_samples=constants.MIN_PHOTOS_IN_CLUSTER,
-                    n_jobs=min(len(coordinates), constants.MOVIE_DAEMON_MAX_PROCESSES)).fit(coordinates)
-
-        labels = db.labels_
-
-        n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-        return (n_clusters, labels)
 
     def _get_gps_coordinates(self, fnames):
         """

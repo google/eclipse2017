@@ -45,29 +45,39 @@ export UNRELEASED=false
 
 CMDLIST=("kill", "clean", "create_secret", "build", "push", "deploy", \
          "update", "teardown", "unittest", "systest", "creds")
+DEPLOYMENTLIST=("static-nginx", "profile", "geo", "admin", "upload")
+
 APPLIST=("base-container", "app-container", "nginx-container", "static-nginx", \
          "profile-server", "profile-nginx", "admin-server", "admin-nginx", \
+         "geo-server", "geo-nginx", \
          "upload-server", "upload-nginx", "upload-daemon", \
+         "photo-server", "photo-nginx", \
          "movie-daemon", "image-processor-daemon", \
          "datastore-emulator", "nginx-lb-emulator", \
-         "test-container")
+         "test-container", "system-test-container")
 ENVLIST=("local-dev", "dev", "test", "prod")
 
-USAGE="usage: ./run CMD ENV <OPTIONAL APP>"
+USAGE="usage: ./run CMD ENV <OPTIONAL APP> or ./run update ENV DEPLOYMENT APP"
 VALID_CMD="Valid values for CMD are [$(printf "|%s" "${CMDLIST[@]}" | sed -e 's/,//g' -e 's/^|//')]"
 VALID_ENV="Valid values for ENV are [$(printf "|%s" "${ENVLIST[@]}" | sed -e 's/,//g' -e 's/^|//')]"
 VALID_APP="Valid values for APP are [$(printf "|%s" "${APPLIST[@]}" | sed -e 's/,//g' -e 's/^|//')]"
+VALID_DEPLOYMENT="Valid values for DEPLOYMENT are [$(printf "|%s" "${DEPLOYMENTLIST[@]}" | sed -e 's/,//g' -e 's/^|//')]"
 
 MB_ZEROS=000000
 
-if [[ $# != 2 ]] && [[ $# != 3 ]]; then
-    echo $USAGE; echo $VALID_CMD; echo $VALID_ENV; echo $VALID_APP
+if [[ $# != 2 ]] && [[ $# != 3 ]] && [[ $# != 4 ]]; then
+    echo $USAGE; echo $VALID_CMD; echo $VALID_ENV; echo $VALID_APP; echo If CMD is update, $VALID_DEPLOYMENT
     exit 1
 fi
 
 export CMD=$1
 export TARGET_ENV=$2
-export APP=$3
+if [ "$CMD" != "update" ]; then
+    export APP=$3
+else
+    export DEPLOYMENT=$3
+    export APP=$4
+fi
 
 # Process CMD value
 if array_contains $CMD "${CMDLIST[@]}"; then
@@ -132,7 +142,7 @@ export UPLOAD_SERVER_TOTAL_MAX_USAGE_MB=$(expr $UPLOAD_SERVER_RSS_MAX_USAGE_MB +
 
 
 # make sure the app is in $APPLIST or empty (all)
-if ! array_contains $APP "${APPLIST[@]}"; then
+if ! array_contains $APP "${APPLIST[@]}" && [[ $CMD != update ]]; then
     if [[ $APP != "" ]]; then
       echo "Unsupported APP value: "$APP""
       echo $VALID_APP
@@ -155,4 +165,6 @@ if [[ $LOCAL_DEV != true ]]; then
   gcloud container clusters get-credentials eclipse
 fi
 
-[[ -n $SCRIPT && -f $PROJ_DIR/scripts/$SCRIPT ]] && bash -x $PROJ_DIR/scripts/$SCRIPT $1
+if [[ -n $SCRIPT  && -f $PROJ_DIR/scripts/$SCRIPT ]]; then
+  bash -x $PROJ_DIR/scripts/$SCRIPT $1
+fi

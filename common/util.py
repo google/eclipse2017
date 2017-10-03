@@ -14,14 +14,16 @@
 # limitations under the License.
 
 
-import flask
 import cgi
 import types
 import hashlib
 
 from common.secret_keys import GOOGLE_HTTP_API_KEY, GOOGLE_OAUTH2_CLIENT_ID
-from oauth2client import client, crypt
+from google.oauth2 import id_token
+from google.auth.transport import requests
 from common.eclipse2017_exceptions import ApplicationIdentityError
+
+request = requests.Request()
 
 def in_list(lst, val, key=None):
     """
@@ -74,6 +76,8 @@ def _escape_json(json):
         return cgi.escape(json)
     elif t == types.IntType:
         return json
+    elif t == types.FloatType:
+        return json
     elif t == types.DictType:
         result = {}
         for f in json.keys():
@@ -85,8 +89,7 @@ def _escape_json(json):
             result.append(_escape_json(f))
         return result
     else:
-        print "Unsupported type:", t
-        raise RuntimeError
+        raise RuntimeError, "Unsupported type: %s" % str(t)
 
 class MisformattedInputError(Exception):
     pass
@@ -114,7 +117,7 @@ def _update_entity(json, ALL_FIELDS, entity):
     return entity
 
 def _validate_id_token(token):
-    idinfo = client.verify_id_token(token, GOOGLE_OAUTH2_CLIENT_ID)
+    idinfo = id_token.verify_token(token, request)
     if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
         raise ApplicationIdentityError
     ## TODO(dek): implement additional checks from the Google OAuth examples server-side example page

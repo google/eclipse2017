@@ -1,0 +1,193 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/google-signin/google-signin-aware.html">
+<link rel="import" href="../behaviors/eclipse-debug-logger.html">
+<script type="text/javascript" src="../../bower_components/js-sha256/src/sha256.js"></script>
+<script src="../client-id.js"></script>
+<dom-module id="eclipse-photo-review-service">
+  <template>
+    <style>
+          :host {
+            display:none;
+          }
+        </style>
+    <google-signin-aware id="signin"
+                         scopes="profile"
+                         on-google-signin-aware-success="_handleSignin"
+                         on-google-signin-aware-signed-out="_handleSignout">
+    </google-signin-aware>
+    <iron-ajax
+        id="photoRequest"
+        auto
+        params='{"num_reviews_max": "3", "mask_reviewer": "true", "image_bucket": "megamovie"}'
+        handle-as="json"
+        on-response="_handlePhotoResponse"
+        on-error="_handlePhotoError"
+        last-response="{{photoResponse}}"
+        loading="{{loading}}"
+        debounce-duration="300"></iron-ajax>
+    <iron-ajax
+        id="photoEdit"
+        params='{}'
+        handle-as="json"
+        method="PATCH"
+        on-response="_handleReviewResponse"
+        on-error="_handleReviewError"
+        loading="{{editing}}"
+        debounce-duration="100"></iron-ajax>
+  </template>
+  <script>
+      Polymer({
+        is: 'eclipse-photo-review-service',
+        behaviors: [EclipseBehaviors.DebugLoggerBehavior],
+
+        properties: {
+          user : {
+            type: Object,
+            notify: true,
+            observer: '_onUserChanged'
+          },
+          userId : {
+            type: String,
+            readOnly: true
+          },
+          reviewer : {
+            type: Boolean,
+            notify: true,
+            reflectToAttribute: true,
+            readOnly: true
+          },
+          photoResponse: {
+            type: Object,
+            notify: true
+          },
+          loading: {
+            type: Boolean,
+            notify: true
+          },
+          editing: {
+            type: Boolean,
+            notify: true
+          }
+        },
+
+        observers: [
+          '_onUserChanged(user)',
+        ],
+
+        ready: function() {
+          var signin = this.$$("#signin");
+          signin.setAttribute("client-id", client_id);
+          if (signin.signedIn) {
+            this.user = gapi.auth2.getAuthInstance()['currentUser'].get();
+          }
+        },
+
+        reviewPhoto: function(photoId, vote) {
+          var photoEdit = this.$.photoEdit;
+          photoEdit.url = this._getPhotoUrl(photoId);
+          photoEdit.body = {vote: vote};
+          var idToken = this.user.getAuthResponse().id_token;
+          photoEdit.headers = {"Content-Type" : "application/json",
+                               "X-IDTOKEN" : idToken,
+          };
+          photoEdit.generateRequest();
+        },
+
+        refresh: function() {
+          if (this.photoResponse.cursor) {
+            // Update the ID token header.
+            this.$.photoRequest.headers["X-IDTOKEN"] = this.user.getAuthResponse().id_token;
+            // Add the cursor to params which should kick off a new request.
+            this.set('photoRequest.params.cursor', this.photoResponse.cursor);
+          } else {
+            // No more photos!
+          }
+        },
+
+        _handleSignin: function() {
+          this.consoleLogIfAble("signing in reviewer");
+          this.user = gapi.auth2.getAuthInstance()['currentUser'].get();
+        },
+
+        _handleSignout: function() {
+          this.consoleLogIfAble("signing out reviewer");
+          this.user = null;
+        },
+
+        _onUserChanged: function(user) {
+          if (user) {
+            var token = user.getAuthResponse().id_token;
+            var profile = user.getBasicProfile();
+            this._setUserId(sha256(profile.getId()));
+            this.$.photoRequest.headers["X-IDTOKEN"] = user.getAuthResponse().id_token;
+            this.$.photoRequest.url = this._getEndpointUrl();
+          } else {
+            this._setUserId(null);
+            this.$.photoRequest.headers["X-IDTOKEN"] = null;
+            this.$.photoRequest.url = null;
+          }
+        },
+
+        _getEndpointUrl: function() {
+          var url = "/services/photo/";
+          if (this.LOCAL_DEBUG) {
+            url = "https://localhost" + url;
+          }
+          return url;
+        },
+
+        _getPhotoUrl: function(photoId) {
+          var url = this._getEndpointUrl();
+          return url + photoId;
+        },
+
+        _getPhotoIdFromPath: function(url) {
+          var baseUrl = this._getEndpointUrl();
+          return url.substring(baseUrl.length);
+        },
+
+        _handlePhotoResponse: function(response) {
+          this.consoleLogIfAble("Got photos response " + response.detail.status);
+          if (response.detail.status == 200) {
+            this._setReviewer(true);
+          }
+        },
+
+        _handlePhotoError: function(response) {
+          this.consoleLogIfAble("Got error response " + response.detail.request);
+          if (response.detail.request && response.detail.request.status != 200) {
+            // User doesn't have reviewer role.
+            this._setReviewer(false);
+          }
+        },
+
+        _handleReviewResponse: function(response) {
+          if (response.detail.status == 200) {
+            this.fire("photo-rated", {photoId: this._getPhotoIdFromPath(response.detail.url)});
+          } else {
+            this.fire("rating-error", {photoId: this._getPhotoIdFromPath(response.detail.url)});
+          }
+        },
+
+        _handleReviewError: function(error) {
+          this.fire("rating-error", {photoId: this._getPhotoIdFromPath(error.detail.request.url)});
+        }
+      });
+    </script>
+</dom-module>

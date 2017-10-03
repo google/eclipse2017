@@ -15,6 +15,7 @@ limitations under the License.
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/iron-media-query/iron-media-query.html">
 <link rel="import" href="../shared-styles.html">
 
 <dom-module id="eclipse-scroll-button">
@@ -33,7 +34,7 @@ limitations under the License.
     </style>
 
     <paper-icon-button class="scroll-down" src="/images/Icon_arrow_down.png" on-tap="scrollDown" hidden$="{{!wideLayout}}"></paper-icon-button>
-    <iron-media-query query="min-width: 600px" query-matches="{{wideLayout}}"></iron-media-query>
+    <iron-media-query query="min-width: 865px" query-matches="{{wideLayout}}"></iron-media-query>
   </template>
   <script>
         Polymer({

@@ -28,6 +28,7 @@ ALLOWED_ENTITIES = {
         'deleted_date': {'restricted': True},
         'geolat': {'restricted': False},
         'geolng': {'restricted': False},
+        'badges': {'restricted': True}
     },
     DATASTORE_PHOTO: {
         'gcs_upload_failed': {'restricted': False},
@@ -35,6 +36,26 @@ ALLOWED_ENTITIES = {
         'processed': {'restricted': False},
         'uploaded_date': {'restricted': False},
         'user': {'restricted': True},
+        'image_type': {'restricted': True},
+        'width': {'restricted': True},
+        'height': {'restricted': True},
+        'image_datetime': {'restricted': True},
+        'lat': {'restricted': True},
+        'lon': {'restricted': True},
+        'exif_json': {'restricted': True},
+        'reviews': {'restricted': True},
+        'num_reviews': {'restricted': True},
+        'upload_session_id': {'restricted': True},
+        'image_bucket': {'restricted': True},
+        'original_filename': {'restricted': True},
+        'confirmed_by_user': {'restricted': True},
+        'is_adult_content': {'restricted': True},
+        'public_agree': {'restricted': True},
+        'cc0_agree': {'restricted': True},
+        'anonymous_photo': {'restricted': True},
+        'equatorial_mount': { 'restricted': True},
+        'camera_datetime': { 'restricted': True},
+        'datetime_repaired': { 'restricted': True},
     },
     DATASTORE_ORIENTED_IMAGE: {
         'upload_date': {'restricted': False},
@@ -61,11 +82,14 @@ def validate_data(data, allow_restricted_fields, kind):
     is the datastore entity kind. `allow_restricted_fields` is a bool.
     """
     if kind not in ALLOWED_ENTITIES:
+        print "invalid kind:", kind
         return False
     for key in data:
         if key not in ALLOWED_ENTITIES[kind]:
+            print "invalid key:", key
             return False
         if (ALLOWED_ENTITIES[kind][key]['restricted']
             and not allow_restricted_fields):
+            print "invalid restricted", kind, key, allow_restricted_fields
             return False
     return True

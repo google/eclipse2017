@@ -13,67 +13,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flask
 import hashlib
 from common import util
 from common import test_common
-from common.eclipse2017_exceptions import MissingCredentialTokenError, MissingUserError, ApplicationIdentityError
-from gcloud import datastore
+from google.cloud import datastore
 
-class Users:
-    """
-    Class for roles profile CRUD.
-    """
-    def _init__(self):
-        pass
+from common.eclipse2017_exceptions import MissingCredentialTokenError, MissingUserError
+def get_id_token(headers):
+    if 'X-IDTOKEN' not in headers:
+        raise MissingCredentialTokenError
+    return headers['X-IDTOKEN']
 
+def get_userid(idinfo):
+    if 'sub' not in idinfo:
+        raise MissingUserError
+    return idinfo["sub"]
 
-    def get_id_token(self, headers):
-        if 'X-IDTOKEN' not in headers:
-            raise MissingCredentialTokenError
-        return headers['X-IDTOKEN']
+def get_userid_hash(userid):
+    return unicode(hashlib.sha256(userid).hexdigest())
 
-    def get_userid(self, idinfo):
-        if 'sub' not in idinfo:
-            raise MissingUserError
-        return idinfo["sub"]
+def get_empty_user_entity(client, user_id):
+    key = client.key("User", user_id)
+    entity = datastore.Entity(key=key)
+    return entity
 
-    def get_userid_hash(self, userid):
-        return unicode(hashlib.sha256(userid).hexdigest())
+def get_user(client, user_id):
+    """Returns user entity."""
+    key = client.key("User", user_id)
+    entity = client.get(key)
+    return entity
 
-    def get_empty_user_entity(self, client, user_id):
-        key = client.key("User", user_id)
-        entity = datastore.Entity(key=key)
-        return entity
+def check_if_user_exists(client, user_id):
+    """Returns True if User with user_id already exists."""
+    return get_user(client, user_id) is not None
 
-    def get_user(self, client, user_id):
-        """Returns user entity."""
-        key = client.key("User", user_id)
-        entity = client.get(key)
-        return entity
+def create_or_update_user(client, entity):
+    client.put(entity)
 
-    def check_if_user_exists(self, client, user_id):
-        """Returns True if User with user_id already exists."""
-        return self.get_user(client, user_id) is not None
-
-    def create_or_update_user(self, client, entity):
-        client.put(entity)
-
-    def delete_user(self, client, user_id):
-        key = client.key("User", user_id)
-        client.delete(key)
-
-    def authn_check(self, headers):
-        try:
-            token = self.get_id_token(headers)
-        except MissingCredentialTokenError:
-            return flask.Response("The request is missing a credential token.", 405)
-        try:
-            idinfo = util._validate_id_token(token)
-        except ApplicationIdentityError:
-            return flask.Response("The request id token is invalid.", 405)
-        try:
-            userid = self.get_userid(idinfo)
-        except MissingUserError:
-            return flask.Response("The user is missing.", 405)
-        return userid
+def delete_user(client, user_id):
+    key = client.key("User", user_id)
+    client.delete(key)

@@ -39,6 +39,11 @@ SERVICE_ACCOUNT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'service_account.json')
 
 #
+# Static server constants
+#
+STATIC_SERVER_PORT = 80
+
+#
 # Profile server constants
 #
 GOOGLE_PLUS_USER_URL = 'https://www.googleapis.com/plus/v1/people/me' \
@@ -57,7 +62,7 @@ FILE_NOT_READY_SUFFIX = '.tmp'
 
 MAX_UPLOAD_SIZE = 128 * MB
 
-UPLOAD_DAEMON_MAX_PROCESSES = 64
+UPLOAD_DAEMON_MAX_PROCESSES = 8
 UPLOAD_DAEMON_SLEEP_TIME = 1
 
 UPLOAD_DIR = '/pending-uploads'

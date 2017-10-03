@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import string
+import random
 
 def minute_seconds_to_decimal(ms):
   """Convert value in minute.seconds to decimal"""
@@ -24,6 +25,7 @@ def string_to_decimal(s):
 
 def load_data(lines):
   """Load data file resembling NASA eclipse path data."""
+  times = []
   points = []
   in_limits = False
   for line in lines:
@@ -58,8 +60,50 @@ def load_data(lines):
       slat = string_to_decimal(slat)
       slon = string_to_decimal(slon)
 
+      times.append(t)
       points.append( ((nlat, -nlon), (clat, -clon), (slat, -slon)))
-  return points
+  return times, points
+
+def load_stripped_data(lines):
+  """Load stripped data file resembling NASA eclipse path data.  This
+     routine exists to parse files like
+     eclipse_gis/data/eclipse_data.txt which have been partially
+     stripped of irrelevant data.
+  """
+  times = []
+  points = []
+  in_limits = False
+  for line in lines:
+    if line.startswith('#'):
+      continue
+    line = line.strip()
+    if line == '':
+      continue
+    t = line[0:5]
+    nlat = line[7:16]
+    nlon = line[17:26]
+    slat = line[27:36]
+    slon = line[37:46]
+    clat = line[47:56]
+    clon = line[57:66]
+    msdiam = line[68:73]
+    sunalt = line[75:77]
+    sunazm = line[79:81]
+    pathwidth = line[84:86]
+    dur = line[88:]
+
+    if nlat == '    -    ':
+      continue
+    nlat = string_to_decimal(nlat)
+    nlon = string_to_decimal(nlon)
+    clat = string_to_decimal(clat)
+    clon = string_to_decimal(clon)
+    slat = string_to_decimal(slat)
+    slon = string_to_decimal(slon)
+
+    times.append(t)
+    points.append( ((nlat, -nlon), (clat, -clon), (slat, -slon)))
+  return times, points
 
 def load_tsv(filename):
   f = open(filename)
@@ -68,7 +112,7 @@ def load_tsv(filename):
   for line in lines:
     point = map(float, line.split("\t"))
     points.append(point)
-  from shapely.geometry import Polygon, Point, LineString
+  from shapely.geometry import Polygon, Point
   eclipse_boundary = Polygon(points)
   return eclipse_boundary
 
@@ -104,3 +148,12 @@ class EclipseGIS:
   def interpolate_nearest_point_on_line(self, point):
     p = self.find_nearest_point_on_line(point)
     return self.center_line.project(p, normalized=True)
+
+  def get_random_point_in_polygon(self):
+    from shapely.geometry import Point
+    poly = self.eclipse_boundary
+    min_x, min_y, max_x, max_y = poly.bounds
+    while True:
+      p = Point(random.uniform(min_x, max_x), random.uniform(min_y, max_y))
+      if poly.contains(p):
+        return p

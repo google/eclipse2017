@@ -1,0 +1,227 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="eclipse-photo-review-service/eclipse-photo-review-service.html">
+<link rel="import" href="behaviors/eclipse-debug-logger.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-review">
+  <template>
+    <style include="shared-styles">
+      :host {
+        @apply(--layout-vertical);
+        min-height:calc(100vh - 180px);
+        @apply(--paper-font-body1);
+      }
+
+      iron-list {
+        height: 80vh;
+      }
+
+      #review {
+        min-height:70vh;
+      }
+
+      .photoreview {
+        @apply(--layout-vertical);
+        margin:32px;
+        height:70vh;
+      }
+
+      .photoreview img {
+        @apply(--layout-self-center);
+        height: auto;
+        width: 100%;
+        max-height:90%;
+      }
+
+      .photoreview .rating-controls {
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+        @apply(--layout-center-justified);
+        margin-top:16px;
+        margin-bottom:16px;
+        min-height:48px;
+      }
+
+      paper-button {
+        color: #fff;
+        --primary-color: #fff;
+      }
+
+      paper-button[up] {
+        background-color: var(--paper-green-300);
+      }
+
+      paper-button[down] {
+        background-color: var(--paper-red-300);
+      }
+
+      paper-spinner {
+        @apply(--layout-self-center);
+        margin-top:24px;
+      }
+
+      paper-toast {
+        background-color: var(--paper-yellow-50);
+        color: var(--paper-grey-800);
+      }
+
+      #rerate {
+        color: var(--paper-blue-800);
+      }
+
+      .alldone {
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+        @apply(--layout-center-justified);
+        margin:32px;
+      }
+
+      @media all and (max-width:600px) {
+
+      }
+    </style>
+    <eclipse-photo-review-service id="photoService" reviewer="{{reviewer}}" photo-response="{{photoResponse}}" loading="{{loading}}" editing="{{editing}}"></eclipse-photo-review-service>
+
+    <!-- Eclipse review page content -->
+    <template is="dom-if" if="[[reviewer]]">
+      <div id="review">
+        <div class="photoreview" hidden$="[[!photoToRate]]">
+          <img src="[[photoToRate.url]]"/>
+          <div>Photo: [[photoToRate.name]]</div>
+          <div class="rating-controls">
+            <paper-button raised up disabled="{{editing}}" data-photo-id$="[[photoToRate.name]]" data-vote="up" on-tap="_rateImage">Totality</paper-button>
+            <div></div>
+            <paper-button raised down disabled="{{editing}}" data-photo-id$="[[photoToRate.name]]" data-vote="down" on-tap="_rateImage">Not totality</paper-button>
+          </div>
+        </div>
+        <div class="alldone" hidden$="[[photoToRate]]">
+          No more photos to rate!
+        </div>
+        <paper-toast id="toast" text="Photo rated!" duration="6000"><paper-button id="rerate" on-tap="_rerate">Rerate</paper-button></paper-toast>
+      </div>
+    </template>
+
+    <template is="dom-if" if="[[!reviewer]]">
+      <div id="reviewerprompt">
+        You need to be a reviewer to view this page.
+      </div>
+    </template>
+
+    <paper-spinner active="{{loading}}"></paper-spinner>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-review',
+      behaviors: [EclipseBehaviors.DebugLoggerBehavior],
+
+      properties: {
+        photoToRate: {
+          type: Object
+        },
+        photoResponse: {
+          type: Object
+        },
+        loading: {
+          type: Boolean
+        }
+      },
+
+      observers: [
+        '_onPhotosChanged(photoResponse.*)'
+      ],
+
+      attached: function() {
+        this.listen(this.$.photoService, "photo-rated", "_onPhotoRated");
+        this.listen(this.$.photoService, "rating-error", "_onRatingError");
+      },
+
+      detached: function() {
+        this.unlisten(this.$.photoService, "photo-rated", "_onPhotoRated");
+        this.unlisten(this.$.photoService, "rating-error", "_onRatingError");
+      },
+
+      _onPhotosChanged: function(changeRecord) {
+        if (!changeRecord.base) {
+          return;
+        }
+        var photos = changeRecord.base.photos;
+        if (photos.length > 0) {
+          this.photoToRate = this.get(['photoResponse.photos', 0]);
+        } else {
+          this.photoToRate = null;
+        }
+      },
+
+      _rateImage: function(event) {
+        var target = event.target;
+        var photoId = target.dataset.photoId;
+        var vote = target.dataset.vote;
+
+        this.$.photoService.reviewPhoto(photoId, vote);
+      },
+
+      _onPhotoRated: function(event) {
+        var photo = this.shift('photoResponse.photos');
+        if (photo) {
+          if (this.get('photoResponse.photos').length == 0) {
+            this.$.photoService.refresh();
+          }
+
+          var toast = this.$$("#toast");
+          if (toast.opened) {
+            toast.close();
+          }
+          toast.text = "Photo " + photo.name + " rated.";
+          toast.queryEffectiveChildren("#rerate").reratePhoto = photo;
+          toast.open();
+        }
+      },
+
+      _onRatingError: function(event) {
+        var photoId = event.detail.photoId;
+        var toast = this.$$("#toast");
+        toast.fitInto = this.$$("#review");
+        if (toast.opened) {
+          toast.close();
+        }
+        toast.text = "Error rating photo " + photoId;
+        toast.open();
+      },
+
+      _rerate: function(event) {
+        if (event.target.reratePhoto) {
+          // Put it back into the list:
+          this.unshift('photoResponse.photos', event.target.reratePhoto);
+          var toast = this.$$("#toast");
+          if (toast.opened) {
+            toast.close();
+          }
+        }
+      }
+    });
+  </script>
+</dom-module>

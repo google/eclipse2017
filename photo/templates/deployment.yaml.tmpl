@@ -1,0 +1,57 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: photo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: photo-backend
+    matchExpressions:
+      - {key: tier, operator: In, values: [photo-backend]}
+  template:
+    metadata:
+      labels:
+        app: photo
+        tier: photo-backend
+    spec:
+      containers:
+        - name: photo-server
+          image: {{GCR_PREFIX}}/photo-server
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          # TODO(dek): health probe
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 512M
+              requests:
+                  cpu: 100m
+                  memory: 512M
+        - name: photo-nginx
+          image: {{GCR_PREFIX}}/photo-nginx
+          ports:
+            - containerPort: 80
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 128M
+              requests:
+                  cpu: 100m
+                  memory: 128M

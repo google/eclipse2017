@@ -1,0 +1,335 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
+<link rel="import" href="behaviors/eclipse-date-aware-behavior.html">
+<link rel="import" href="eclipse-user-service/eclipse-user-service.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="eclipse-certificate">
+  <template>
+    <style include="shared-styles">
+      :host {
+        @apply(--paper-font-body1);
+        @apply(--layout-vertical);
+        @apply(--layout-center-justified);
+        @apply(--layout-flex-auto);
+        min-width: 600px;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      a{
+        text-decoration: none;
+      }
+
+      #container{
+        position:relative;
+      }
+
+      #border {
+        border: 4px solid #DA8233;
+        position:absolute;
+        top:16px;
+        left:16px;
+        right:16px;
+        bottom:16px;
+        z-index:1;
+      }
+
+      .instructions {
+        @apply(--layout-vertical);
+        color: #000;
+        margin:32px;
+      }
+
+      #content {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-justified);
+        background:#fff;
+        color: #000;
+        padding-top:32px;
+      }
+
+      .award {
+      }
+
+      .ribbon-holder, .logos {
+        @apply(--layout-horizontal);
+        width:100%;
+        @apply(--layout-justified);
+        margin: 16px 0;
+      }
+
+      img[left] {
+        transform: rotate(180deg);
+      }
+
+      .certificate-label div {
+        text-align:center;
+      }
+
+      .certificate-text {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-center-justified);
+        @apply(--layout-flex-2);
+        margin: 32px 0;
+      }
+
+      .certificate-date {
+        @apply(--paper-font-headline);
+        margin: 16px 0;
+      }
+
+      .user-name {
+        @apply(--paper-font-display1);
+        margin: 16px 0;
+      }
+
+      .badges {
+        @apply(--layout-flex-2);
+        @apply(--layout-horizontal);
+        margin-top:16px;
+      }
+
+      .badge {
+        width: 143px;
+        height: 89px;
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--layout-center-justified);
+        padding: 0 30px;
+        text-transform:uppercase;
+        font-size: 10px;
+        box-sizing: border-box;
+        text-align:center;
+        font-weight:500;
+        margin: 0 8px;
+        position:relative;
+      }
+
+      .badge img {
+        position:absolute;
+        top:0;
+        left:0;
+      }
+
+
+      .logos img {
+        margin: 16px 32px;
+      }
+
+      @media print {
+        .instructions {
+          display: none;
+        }
+
+        #container {
+          width: 100%;
+        }
+
+        #content {
+          height: calc(100vh - 32px);
+        }
+
+        #content[moremargin] {
+          height: calc(100vh - 100px);
+        }
+
+        :host {
+          position:absolute;
+          top:0;
+          left:0;
+          right:0;
+          bottom:0;
+        }
+      }
+
+    </style>
+    <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
+    <eclipse-user-service id="userService" name="{{name}}" badges="{{badges}}"></eclipse-user-service>
+    <!-- Certificate page content -->
+    <template is="dom-if" if="[[badges.length]]">
+      <div id="container" inline$="[[inline]]">
+        <div id="border">
+          <div class="instructions" hidden$="[[!standalone]]">
+            <a class href="#" on-tap="_print">Print <iron-icon icon="icons:print"></iron-icon></a>
+            Suggested printer settings:
+            <ul>
+              <li>landscape</li>
+              <li>no margins</li>
+              <li>color</li>
+            </ul>
+          </div>
+          <div class="instructions" hidden$="[[standalone]]">
+            <a href="/certificate">View full screen</a>
+          </div>
+        </div>
+        <div id="content" moremargin$="{{isSafari}}">
+          <img class="award" src="/images/Eclipse_award.svg"/>
+          <div class="ribbon-holder">
+            <img left src="/images/Ribbon.svg"/>
+            <img width="320" height="69" src="/images/Certificate_title.svg"/>
+            <img src="/images/Ribbon.svg"/>
+          </div>
+          <div class="certificate-text">
+            <div class="certificate-body">This certifies that</div>
+            <div class="user-name">[[name]]</div>
+            <div class="certificate-body">actively participated in the 2017 Eclipse Megamovie</div>
+            <div class="certificate-body">a citizen science program</div>
+            <div class="certificate-date">August 21, 2017</div>
+          </div>
+          <div class="badges">
+            <template is="dom-repeat" items="[[badgeDatas]]">
+              <div class="badge" title="[[item.hint]]">
+                <p>[[item.title]]</p>
+                <img src="/images/Badge.svg"/>
+              </div>
+            </template>
+          </div>
+          <div class="logos">
+            <img src="/images/Googlelogo_black.svg"/>
+            <img src="/images/Berk_logo_black.svg"/>
+          </div>
+        </div>
+      </div>
+    </template>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-certificate',
+      behaviors: [EclipseBehaviors.ScrollToAnchorBehavior],
+
+      properties: {
+        header: {
+          type: Object
+        },
+        footer: {
+          type: Object
+        },
+        print: {
+          type: Boolean,
+          value: true
+        },
+        badges: {
+          type: Array
+        },
+        badgeDatas : {
+          type: Array
+        },
+        standalone: {
+          type: Boolean,
+          value: false
+        },
+        isSafari: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      observers: [
+        '_updateBadgeData(badges)'
+      ],
+
+      onSelectedPage: function() {
+        this._refreshProfile();
+      },
+
+      created: function() {
+        this.BADGE_DATA = this._getBadgeData();
+      },
+
+      ready: function() {
+        // Remove adjust height CSS Safari only.
+        this.isSafari = /constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || safari.pushNotification);
+      },
+
+      _getBadgeData: function() {
+        var badgeData = {
+          "volunteer": {
+            title: "Megamovie Photo Team",
+            hint: "I was a hand-picked member of the Megamovie Photo Team!"
+          },
+          "ul1" : {
+            title: "Contributed 1 photo",
+            hint: "I submitted a photo to the Megamovie project."
+          }
+        };
+
+        var cutoffs = [2, 5, 10, 25, 50, 100, 250, 500];
+        cutoffs.forEach(function(cutoff) {
+          badgeData["ul" + cutoff] = {
+            title: "Contributed " + cutoff + "+ photos",
+            hint: "I submitted " + cutoff + "+ photos to the Megamovie project"
+          }
+        });
+        return badgeData;
+      },
+
+      _refreshProfile: function() {
+        this.$.userService.refresh();
+      },
+
+      _updateBadgeData: function(badges) {
+        if (badges) {
+          this.badgeDatas = badges.map(function(badge) {
+            return this.BADGE_DATA[badge];
+          }.bind(this));
+        } else {
+          this.badgeDatas = [];
+        }
+      },
+
+      _print: function(event) {
+        this._setHeader(false, function() {
+          window.print();
+          this._setHeader(true);
+        }.bind(this));
+        event.preventDefault();
+      },
+
+      _setHeader: function(show, callback) {
+        if (this.header) {
+            if (show) {
+              this.header.removeAttribute("hidden");
+            } else {
+              this.header.setAttribute("hidden", "true");
+            }
+        }
+        if (this.footer) {
+          if (show) {
+            this.footer.removeAttribute("hidden");
+          } else {
+            this.footer.setAttribute("hidden", "true");
+          }
+        }
+        Polymer.updateStyles();
+
+        if (callback && callback.call) {
+          window.setTimeout(callback, 200);
+        }
+      }
+    });
+  </script>
+</dom-module>

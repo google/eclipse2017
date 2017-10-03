@@ -19,9 +19,9 @@ import random
 from mock import call, Mock
 import unittest2
 
-from gcloud.datastore.entity import Entity as GCDEntity
-from gcloud.exceptions import GCloudError
-from gcloud.streaming.exceptions import Error as GCloudStreamingError
+from google.cloud.datastore.entity import Entity as GCDEntity
+from google.cloud.exceptions import GCloudError
+from google.cloud.streaming.exceptions import Error as GCloudStreamingError
 
 from common import config
 from common import constants

@@ -17,12 +17,12 @@ import json
 import unittest2
 
 from app.backend.eclipse2017_admin_app import Eclipse2017AdminApp
-from gcloud import datastore
+from google.cloud import datastore
 
 from common import config
 from common import secret_keys as sk
-from common.roles import Roles
-from common.users import Users
+from common import roles
+from common import users
 
 from common import test_common
 from common import util
@@ -33,36 +33,35 @@ class LocationTests(unittest2.TestCase):
     """
     def __init__(self, *args, **kwargs):
         super(LocationTests, self).__init__(*args, **kwargs)
-        self.roles = Roles()
-        self.users = Users()
 
         USER = '1'
         self.USER = USER
         self.USER2 = '2'
-        self.USER_HASH = unicode(self.users.get_userid_hash(self.USER))
-        self.USER2_HASH = self.users.get_userid_hash(self.USER2)
-        self.HEADERS={'Content-type': 'application/json',
-                      'X-IDTOKEN': self.USER}
-
+        self.USER_HASH = unicode(users.get_userid_hash(self.USER))
+        self.USER2_HASH = users.get_userid_hash(self.USER2)
 
         # Fake user idtoken verifier
-        class client:
+        class id_token:
             def __init__(self):
                 pass
-            def verify_id_token(self, token, client_id):
+            def verify_token(self, token, _):
                 return { 'iss': 'accounts.google.com',
                          'sub': USER}
 
         # Fake user idtoken verifier
-        class user2_client:
+        class id_token2:
             def __init__(self):
                 pass
-            def verify_id_token(self, token, client_id):
+            def verify_token(self, token, _):
                 return { 'iss': 'accounts.google.com',
-                         'sub': self.USER2}
+                         'sub': USER2}
 
-        util.client = client()
+        self.id_token = id_token()
+        self.id_token2 = id_token2()
+        util.id_token = self.id_token
 
+        self.HEADERS={'Content-type': 'application/json',
+                      'X-IDTOKEN': self.USER}
 
     def setUp(self):
         self.app = Eclipse2017AdminApp(config.PROJECT_ID, sk.FLASK_SESSION_ENC_KEY,
@@ -96,12 +95,12 @@ class LocationTests(unittest2.TestCase):
 
     def test_get_location(self):
         self._setup_user(self.USER_HASH)
-        self.roles.create_user_role(self.datastore_client, self.USER_HASH, [u'admin'])
+        roles.create_user_role(self.datastore_client, self.USER_HASH, [u'admin'])
         self._get_location_root(expected_status=200)
 
     def test_get_location_not_admin(self):
         self._setup_user(self.USER_HASH)
-        self.roles.create_user_role(self.datastore_client, self.USER_HASH, [u'user'])
+        roles.create_user_role(self.datastore_client, self.USER_HASH, [u'user'])
         self._get_location_root(expected_status=403)
 
     def test_get_location_missing_auth(self):

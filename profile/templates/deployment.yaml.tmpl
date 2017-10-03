@@ -32,10 +32,10 @@ spec:
           resources:
               limits:
                   cpu: 1000m
-                  memory: 1000M
+                  memory: 1G
               requests:
-                  cpu: 1000m
-                  memory: 1000M
+                  cpu: 100m
+                  memory: 1G
         - name: profile-nginx
           image: {{GCR_PREFIX}}/profile-nginx
           ports:
@@ -50,8 +50,8 @@ spec:
                   port: 80
           resources:
               limits:
-                  cpu: 500m
-                  memory: 1000M
+                  cpu: 1000m
+                  memory: 128M
               requests:
-                  cpu: 500m
-                  memory: 1000M
+                  cpu: 100m
+                  memory: 128M

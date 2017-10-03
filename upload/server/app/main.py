@@ -29,7 +29,7 @@ from backend.upload_server import UploadServer
 service_account_path = os.path.abspath('./common/service_account.json')
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = service_account_path
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format=constants.LOG_FMT_M_THREADED)
 
 upload_server = UploadServer(

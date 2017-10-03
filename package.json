@@ -1,0 +1,14 @@
+{
+  "name": "eclipse-megamovie-build",
+  "version": "0.0.0",
+  "description": "Eclipse Megamovie build system",
+  "devDependencies": {
+    "bower": "1.8",
+    "polymer-cli": "1.1.0",
+    "generator-polymer-init-custom-build": "2.0.1"
+  },
+  "engines": {
+    "node": "6.0"
+  },
+  "private": true
+}

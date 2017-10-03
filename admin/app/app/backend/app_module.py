@@ -17,7 +17,7 @@ import datetime
 import json
 
 import flask
-from gcloud import datastore
+from google.cloud import datastore
 
 
 

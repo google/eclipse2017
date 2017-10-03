@@ -17,14 +17,16 @@ from flask import Flask
 
 from count import count
 from locations import locations
-# from clusters import clusters
+from photo_count import photo_count
+from clusters import clusters
 from routes import Routes
 
 
 blueprints = (
     (count.create_blueprint(), '/services/admin/users/count'),
-    (locations.create_blueprint(), '/services/admin/users/locations'),)
-    # (clusters.create_blueprint(), '/services/admin/users/clusters'),)
+    (locations.create_blueprint(), '/services/admin/users/locations'),
+    (clusters.create_blueprint(), '/services/admin/clusters'),
+    (photo_count.create_blueprint(), '/services/admin/photos/count'))
 
 base_routes = Routes()
 

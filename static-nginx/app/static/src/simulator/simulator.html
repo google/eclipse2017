@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<!--
+Copyright 2017 Bret Lorimore, George Harder, Jacob Fenger.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="../client-id.js"></script>
+
+    <script>
+        function loadScript() {
+          var script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.src = 'https://maps.googleapis.com/maps/api/js?' +
+              '&key=' + api_key +'&libraries=places,geometry&callback=initSim';
+          document.body.appendChild(script);
+        }
+
+        window.onload = loadScript;
+    </script>
+
+    <script type="text/javascript" src="meuusjs.1.0.3.min.js"></script>
+    <script defer src="https://code.getmdl.io/1.2.1/material.min.js"></script>
+    <script defer type="text/javascript" src="simulator.js"></script>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.2.1/material.grey-amber.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+<meta charset="utf-8">
+<style>
+    #loading {
+        width: 100%;
+        position: absolute;
+        background-color: white;
+        z-index: 10;
+    }
+    .floating-bar {
+        position: absolute;
+        left: 50%;
+        padding-top: 12px;
+        z-index: 5;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+    }
+    .floating-bar .inner {
+        position: relative;
+        left: -50%;
+    }
+    .floating-bar.top {
+        top: 10px;
+    }
+    .floating-bar.bottom {
+        bottom: 10px;
+    }
+    .floating-bar.bottom .inner {
+        bottom: 10px;
+    }
+    .floating-bar.bottom .mdl-button {
+        margin-left: 0;
+        font-weight: 400;
+    }
+    .floating-bar .mdl-button, .floating-bar.top .map-container {
+        margin-left: 8px;
+        float: left;
+    }
+    .floating-bar .mdl-button.blue {
+        color: #4285F4;
+    }
+    .slider-container {
+        float: left;
+        margin-top: 14px;
+    }
+    @media screen and (max-width: 399px) {
+        .floating-bar.top input {
+            width: 200px;
+        }
+    }
+    @media screen and (min-width: 400px) {
+        .floating-bar.top input {
+            width: 300px;
+        }
+    }
+    @media screen and (max-width: 749px) {
+        .floating-bar .map-container {
+            position: relative;
+            margin-top: 10px;
+            margin-left: 0px;
+            left: -50%;
+        }
+        .slider-container {
+            width: calc(100% - 72px);
+        }
+        .floating-bar.bottom {
+            width: calc(100% - 16px);
+        }
+        .floating-bar.bottom .mdl-button {
+            margin-left: 0;
+        }
+        .floating-bar.bottom .slider-labels div {
+            margin-left: calc(50% - 96px);
+        }
+        .floating-bar.bottom .slider-labels div, .totality-marker {
+            font-size: 12px;
+        }
+        .floating-bar.bottom .slider-labels.even div {
+            display: none;
+        }
+    }
+    @media screen and (min-width: 750px) {
+        .floating-bar.bottom {
+            width: calc(100% - 100px);
+        }
+        .floating-bar.bottom .slider-labels div, .totality-marker {
+            font-size: 14px;
+        }
+        .floating-bar.top .mdl-button.map-open {
+            margin-top: 4px;
+        }
+        .floating-bar.top .mdl-button.map-open#mapbutton {
+            margin-left: -64px;
+        }
+        .slider-container {
+            width: calc(100% - 300px);
+        }
+    }
+    .floating-bar.top input {
+        height: 56px;
+        font-size: 18px;
+        background-color: #fff;
+        font-family: 'Roboto';
+        font-weight: 300;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;
+        border-radius: 2px;
+    }
+    .floating-bar.top .search {
+        border: 1px solid transparent;
+        border-radius: 2px;
+        outline: none;
+    }
+    .mdl-button, .mdl-button:focus, .mdl-button:hover, .mdl-button--raised.mdl-button--colored {
+        background-color: #fff;
+    }
+    .slider-container .mdl-slider__background-lower {
+        background-color: #4285F4;
+    }
+    .slider-container .mdl-slider__background-upper {
+        background-color: #d8d8d8;
+    }
+    /* Chrome */
+    .slider-container input[type=range]::-webkit-slider-thumb, .slider-container input[type=range]:focus::-webkit-slider-thumb, .slider-container input[type=range].is-lowest-value::-webkit-slider-thumb {
+        background: #4285F4;
+        border: none;
+    }
+    /* Firefox */
+    .slider-container input[type=range]::-moz-range-thumb, .slider-container input[type=range]:focus::-moz-range-thumb, .slider-container input[type=range].is-lowest-value::-moz-range-thumb {
+        background: #4285F4;
+        border: none;
+    }
+    /* IE */
+    .slider-container input[type=range]::-ms-thumb, .slider-container input[type=range]:focus::-ms-thumb, .slider-container input[type=range].is-lowest-value::-ms-thumb {
+        background: #4285F4;
+        border: none;
+    }
+    .slider-labels {
+        width: calc(100% - 10px);
+        height: 20px;
+        margin-left: 5px;
+        margin-top: 5px;
+        text-align: center;
+        color: #616161;
+    }
+    .slider-labels div {
+        height: 20px;
+        width: 60px;
+        float: left;
+        margin-left: calc(25% - 75px);
+    }
+    .control-bar {
+        height: 90px;
+        padding: 0px 15px 0px 15px;
+        background-color: #fff;
+    }
+    .floating-bar.bottom .mdl-button {
+        float: left;
+        margin-top: 25px;
+    }
+    .background {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .background.img {
+        background-image: url("img/background.png");
+        background-size: cover;
+        background-position: center;
+    }
+    .background.img.dark {
+        background-image: url("img/background_dark.png");
+    }
+    .background.img.dark.nostars {
+        background-image: url("img/background_dark_nostars.png");
+    }
+    .background.sky {
+        background-color: #8cd2dd;
+    }
+    .slider-tooltip {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 300;
+    }
+    .totality-marker {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 400;
+        color:#616161;
+        margin-bottom: 1px;
+    }
+</style>
+</head>
+
+<body style="margin: 0px; overflow: hidden;">
+
+    <div id="loading">
+        <div class="mdl-spinner mdl-js-spinner is-active" style="position: absolute; top: 50%; left: calc(50% - 20px);"></div>
+    </div>
+
+    <div class="floating-bar bottom">
+        <div class="inner">
+            <div id="controls" class="control-bar mdl-shadow--2dp">
+
+                <!-- Play button -->
+                <button class="mdl-button blue mdl-js-button" id="play">
+                    <i class="material-icons">play_arrow</i>
+                </button>
+
+                <!-- Time down button -->
+                <button class="mdl-button blue mdl-js-button" id="downbutton">
+                    <i class="material-icons">replay_30</i>
+                </button>
+
+                <!-- Time up button -->
+                <button class="mdl-button blue mdl-js-button" id ="upbutton">
+                    <i class="material-icons">forward_30</i>
+                </button>
+
+                <!-- Right aligned menu below button -->
+                <button id="speed-menu-button" class="mdl-button mdl-js-button">
+                    <span>1000X</span>
+                    <i class="material-icons">arrow_drop_down</i>
+                </button>
+
+                <ul id="speed-menu" class="mdl-menu mdl-menu--top-right mdl-js-menu mdl-js-ripple-effect"
+                    for="speed-menu-button">
+                    <li disabled id="speed-button-slow" class="mdl-menu__item"></li>
+                    <li id="speed-button-fast" class="mdl-menu__item"></li>
+                </ul>
+
+                <!-- Time slider -->
+                <div class="slider-container">
+                    <div class="totality-marker" id="totality-label"></div>
+                    <!-- +/- 720 minutes = +/- 12 hours with 2 minute resolution -->
+                    <input class="mdl-slider mdl-js-slider" type="range" id="tslider" min="-360" max="360" value="0" step="1" title="Current time">
+
+                    <div class="slider-labels">
+                        <div id="slabel1" style="margin-left: 0px;"></div>
+                        <div id="slabel2" class="even"></div>
+                        <div id="slabel3"></div>
+                        <div id="slabel4" class="even"></div>
+                        <div id="slabel5"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="background sky"></div>
+
+    <svg id="svg-container" style="position: absolute; top: 0; left: 0;">
+
+        <defs>
+            <filter id="sun-bg" x="0%" y="0%" width="100%" height="100%">
+                <feImage xlink:href="img/sun.png"/>
+            </filter>
+        </defs>
+
+        <!-- Sun/Moon -->
+        <circle id="sun" cx="0" cy="0" r="40" filter="url(#sun-bg)" style="display: none"/>
+        <circle id="moon" cx="0" cy="0" r="40" fill="rgba(181, 227, 248, 0.65)" style="display: none"/>
+    </svg>
+
+    <div class="background img"></div>
+    <div class="background img dark"></div>
+    <div class="background img dark nostars"></div>
+
+    <div class="floating-bar top">
+        <div class="inner">
+            <input id="pac-input" style="float: left;" class="mdl-shadow--2dp search" type="text" placeholder="Location Search">
+
+            <div id="map-canvas" class="mdl-shadow--2dp map-container"></div>
+
+            <button class="mdl-button blue mdl-js-button mdl-button--fab" id="mapbutton">
+                <i class="material-icons">map</i>
+            </button>
+
+            <button class="mdl-button blue mdl-js-button mdl-button--fab mdl-button--raised mdl-js-ripple-effect" id="zoom">
+                <i class="material-icons">zoom_in</i>
+            </button>
+        </div>
+    </div>
+
+    <div id="mobile-map-container" class="floating-bar" style="top: 70px"></div>
+
+    <!-- Error message box -->
+    <div id="error-snackbar" class="mdl-js-snackbar mdl-snackbar" style="z-index: 11">
+        <div class="mdl-snackbar__text"></div>
+        <button class="mdl-snackbar__action" type="button"></button>
+    </div>
+
+    <!--
+         Google Maps places service wants a place to display results this makes it happy.
+         You can pass it a map object, but this leads to the creation of a small grey box in the
+         lower right hand corner. This can even be seen in the example here
+         https://developers.google.com/maps/documentation/javascript/examples/place-details
+     -->
+    <div id="garbage-dump" style="display:none"></div>
+
+</body>
+</html>

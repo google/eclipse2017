@@ -166,12 +166,21 @@ limitations under the License.
           summary: {
             type: String
           },
+          secondarySummary: {
+            type: String
+          },
+          hasSecondarySummary: {
+            type: Boolean
+          },
           opened: {
             type: Boolean,
             notify: true,
             observer: '_setOpened'
           },
           disabled: {
+            type: Boolean
+          },
+          noactions: {
             type: Boolean
           }
         },

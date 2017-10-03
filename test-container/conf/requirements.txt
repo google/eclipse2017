@@ -1,6 +1,11 @@
+googlemaps
 Flask==0.12
 unittest2
 mock
 six
 httplib2
 selenium
+numpy
+scipy
+scikit-learn
+matplotlib

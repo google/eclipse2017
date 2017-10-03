@@ -10,9 +10,9 @@ sudo apt-get install docker-engine
 # Install nvm
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
 source $HOME/.bashrc
-# install node.js v4
-nvm install 4
-npm install -g polymer-cli generator-polymer-init-custom-build bower
+# install node.js v6
+nvm install 6
+npm install
 
 # Create a local_dev secret for HTTPS
 ./scripts/run create_secret local-dev
@@ -50,7 +50,7 @@ this: Google Cloud Console > IAM & Admin > Service Accounts > Create Service
 Account. Assign the role Project > Editor (TODO: is this the correct role?) to
 the service account. Select to furnish a new private key in JSON format and
 create the service account. This will download a JSON key file to your downloads
-folder. Rename this file to service_account_<env>.json (choosing the env with
+folder. Rename this file to service_account_\<env\>.json (choosing the env with
 which you want to associate this particular gcloud project) and move it to the
 eclipse2017/conf directory.
 
@@ -85,7 +85,7 @@ $ gcloud container clusters create eclipse --num-nodes 1 --machine-type \
   n1-standard-4 --scopes "https://www.googleapis.com/auth/cloud-platform"
 ```
 
-You need to create a file called <proj_root>/conf/secret_keys_<env>.py for each
+You need to create a file called <proj_root>/conf/secret_keys_\<env\>.py for each
 env to which you wish to deploy. These files need to contain 4 module level
 constants specific to the gcloud project you are associating with env (defined
 in scripts/run):
@@ -97,6 +97,14 @@ in scripts/run):
     - GOOGLE_OAUTH2_CLIENT_SECRET='<str>': obtained from your gcloud project in Console > API Manager > Credentials -> Oauth 2.0 Client IDs
     - GOOGLE_HTTP_API_KEY='<str>': obtained from you gcloud project in Console > API Manager > Credentials -> API Key. This api key should
       be restricted to HTTP traffic from a specific list referrers only.
+    - GOOGLE_MAPS_API_KEY='<str>': obtained from you gcloud project in Console > API Manager > Credentials -> API Key. This api key should not be restricted.
+
+**Enable Cloud APIs**
+In Console > API Manager > Library search for and enable:
+
+    - Google Cloud Vision API
+    - Google Maps JavaScript API
+    - Google Places API Web Service
 
 **To build the application**
 ```bash

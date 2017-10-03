@@ -1,0 +1,327 @@
+<!--
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/iron-location/iron-location.html">
+<link rel="import" href="behaviors/eclipse-scroll-to-anchor-behavior.html">
+<link rel="import" href="shared-styles.html">
+<dom-module id="eclipse-faq">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: flex;
+        @apply(--layout-vertical);
+        padding: 10px 20px;
+        background: #fff;
+        @apply(--paper-font-body1);
+        color: var(--paper-grey-800);
+      }
+
+      a:hover {
+        text-decoration:underline;
+      }
+
+      a, a:visited, a:active {
+        color: var(--paper-blue-500);
+        text-decoration:none;
+      }
+
+      #faq {
+        @apply(--content-width);
+        max-width:800px;
+        padding: 24px 0;
+      }
+
+      .section {
+      }
+
+      .section-header {
+        @apply(--paper-font-headline);
+        margin-bottom:25px;
+      }
+
+      .question {
+        @apply(--paper-font-title);
+        white-space:normal;
+        margin-bottom:16px;
+      }
+      .toc, .item {
+        margin-bottom:40px;
+      }
+
+      .disclaimer {
+        margin-top: 8px;
+        font-size: 12px;
+      }
+
+      @media all and (min-width:600px) {
+
+      }
+
+    </style>
+    <iron-location hash="{{hash}}"></iron-location>
+    <div id="faq">
+      <div class="toc">
+        <div class="section-header">Table of Contents</div>
+        <div id="tocholder"></div>
+      </div>
+      <div class="section">
+        <div class="section-header">Participation</div>
+        <div class="item">
+          <div class="question"><a name="photo_team"></a>What is required to become part of the Megamovie Photo Team?</div>
+          <ol class="answer">
+            <li>Sign in to create a profile and give us some basic info about your camera equipment and planned location</li>
+            <li>Apply: you'll need to be on the path of totality during the eclipse and have the right equipment (see below)</li>
+            <li>If your application is accepted, you’ll become part of the Megamovie Photo Team Google Group, a vibrant community where you can ask questions and get help with imaging. You will also receive regular updates from the coordinators at the Astronomical Society of the Pacific.</li>
+            <li>Training: You’ll have the option to participate in webinars and/or read the written instructions prior to testing. Information on webinars and training materials can be found in the Photo Team Google Group. This step will qualify you for swag!</li>
+            <li>Practice shot: You’ll need to upload a test picture so that we’re sure and you’re sure you’ve got the steps down. We’ll show you how to do that.</li>
+            <li>On August 21st, get your camera ready to capture the eclipse!</li>
+            <li>Upload your photos to the Megamovie website as soon as possible to share with the world the wonders of the eclipse. Your photo will also be used to do real science (<a href="https://eclipsemega.movie/megamovie">science details</a>).</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">Equipment</div>
+        <div class="item">
+          <div class="question"><a name="equipment_basic"></a>What is the suggested equipment needed to take scientifically valid photos of the eclipse?</div>
+          Basic equipment necessary for participating in the Eclipse 2017 Megamovie:
+          <ul class="answer">
+            <li>Camera: DSLR (digital single lens reflex) or equivalent</li>
+            <li>Telephoto or zoom lens: minimum focal length of 300mm</li>
+            <li>A stable and level tripod</li>
+            <li>Ability to identify the GPS coordinates and time to the nearest second with the correct timezone for submitted images</li>
+          </ul>
+          One place you can find these items is at <a href="https://www.bhphotovideo.com/c/promotion/13066/eclipse-megamovie.html" target="_blank">B&amp;H Photo Video</a>.
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_camera"></a>What kind of a camera do I need to have in order to participate?</div>
+          <ul class="answer">
+            <li>To participate in the Eclipse Megamovie Project you will need an interchangeable lens digital camera, such as a DSLR (digital single lens reflex), or mirrorless camera.  Examples of these include: Canon T5i or 7D, Nikon D7200 or D810, etc.</li>
+            <li>A mirrorless camera, such as the Panasonic Lumix DC-GH5, are acceptable for taking images for the Eclipse Megamovie.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_lens"></a>What kind of lens do I need to have on my camera?</div>
+          To participate in the Eclipse Megamovie Project you will need a telephoto or zoom lens with the following:
+          <ul class="answer">
+            <li>For a camera with a APS-C crop-sensor, a minimum focal length of 200mm, up to a maximum of around 600.</li>
+            <li>For a camera with a full frame sensor, a minimum focal length of 300mm, up to a maximum of 800mm.</li>
+            <li>Either a fixed focal length telephoto lens, or a zoom lens with the acceptable focal length in its range is acceptable.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_megapixel"></a>What is the required number of megapixels for Megamovie images?</div>
+          <ul class="answer">
+            <li>A well done image at 8 megapixels is potentially better than a poor image taken at 100 megapixels!  In general, photos should have a minimum resolution of 16 megapixels or greater.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_fov"></a>How large of a field of view will I have to include in the images I submit?</div>
+          <ul class="answer">
+            <li>Your telephoto/zoom lens should provide a field of view (FOV) which includes the Sun’s corona.  A 300mm focal length will provide a field of view of approximately 4 ½ degrees of sky.  You can calculate the FOV for your particular DSLR and lenses using the tools on <a href="http://www.howardedin.com/articles/fov.html" target="_blank">this website</a>.</li>
+            <li>Images for the Megamovie should have a field of view of between 1.5 and 4.5 degrees in the shortest dimension.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_rectangular_image_format"></a>Is a rectangular format required for the images I submit for the Megamovie?</div>
+          <ul class="answer">
+            <li>No, as long as the field of view of your Images are between 1.5 and 4.5 degrees in the shortest dimension.</li>
+            <li>The aspect ratio of your image does not matter, it is all about the field of view.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="image_postprocessing"></a>Should I do any post-processing of the images I submit?</div>
+          <ul class="answer">
+            <li>Minor cropping is acceptable.</li>
+            <li>Please do not make any adjustments to image contrast, color correction, brightness, sharpening, or use HDR.</li>
+          </ul>
+        </div>
+
+        <div class="item">
+          <div class="question"><a name="equipment_telescope"></a>Can I use a telescope as the lens for my camera?</div>
+          The use of a telescope for imaging the eclipse is also acceptable, though it will require additional considerations and equipment, such as:
+          <ul class="answer">
+            <li>A T-mount and T-ring for mounting the camera to the telescope</li>
+            <li>If using eyepiece projection, make sure the FOV is sufficient to include the Sun’s corona</li>
+            <li>Prior to the eclipse you will have to identify the resulting orientation of the image if shooting through a telescope (inverted vs. right side up; left-right inversion; etc.).</li>
+          </ul>
+          In general, the use of a telescope for imaging is fine as long as you follow the same focal length and field of view rules as for lenses. There may also be some additional processing required to align the images to others taken with level tripods
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_tripod"></a>Do I have to use a tripod?</div>
+          <div class="answer">
+            Yes, a stable and level tripod is essential to ensure the quality of images needed for the Eclipse Megamovie Project.
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_tripod_level"></a>How can I level my tripod?</div>
+          There are various methods for leveling one’s tripod:
+          <ul class="answer">
+            <li>A built-in bulls-eye type spirit/bubble level, or an external one you can place on the tripod. Also available through smartphone “bubble level” apps.</li>
+            <li>Some DSLRs have a built-in artificial horizon which can help with leveling the camera.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_telescope_camera"></a>Can I mount my camera on my telescope?</div>
+          <ul class="answer">
+            <li>Mounting the camera piggyback on a telescope is acceptable, just be sure to note this under the 'Advanced options' at upload.</li>
+            <li>If using a fork mounted Schmidt-Cassegrain telescope (SCT) without a wedge, you will have to make sure the telescope mount is level as you would a standard camera tripod.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_timestamp"></a>How can I add an accurate time stamp to the images I take of the eclipse?</div>
+          Mounting the camera piggyback on a telescope is also acceptable, though it will require additional considerations:
+          <ul class="answer">
+            <li>Most modern cameras have the ability to time stamp eclipse images in camera.  If your camera does not do this, you can purchase an add-on GPS device to tag images with an accurate timestamp.</li>
+            <li>If you use the internal time in camera, you will need to synchronize the camera time with your cell phone or GPS unit time to the nearest second before taking photos with the DSLR. Also make sure your time zone is in sync between your phone and camera.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_gps"></a>How can I identify the GPS coordinates for the images I submit?</div>
+          Some modern cameras have a built-in system to tag images with the GPS coordinates for the location where you take the images are taken.  If your camera does not have this, then you have a couple of options:
+          <ul class="answer">
+            <li>Use an add-on GPS device to tag images with their coordinates.</li>
+            <li>An external GPS unit which reads out your coordinates to enter via metadata editing software.</li>
+            <li>Include a GPS tagged photo from a different device (e.g. your smartphone) when uploading your photos. This tag will be applied to all photos in that upload session. Note: for best results, please make sure your smartphone and external camera have the same time setting.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_shutter"></a>Why is it important to use a remote control for triggering the shutter?</div>
+          The use of an external shutter release allows you to take images without touching the camera, thus reducing camera shake and vibration induced blurring.  There are several options to accomplish this:
+          <ul class="answer">
+            <li>Use a remote hand-held trigger, either wired or wireless.</li>
+            <li>Set up the camera in time-lapse mode to take a series of images automatically.</li>
+            <li>Use the self-timer mode to take an image without touching the camera.</li>
+            <li>Tether the camera to a laptop or notebook computer with software to control the camera via the computer.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_protect"></a>How can I protect my camera from the Sun before the onset of totality?</div>
+          Pointing your camera at the sun without protection may damage the camera (more thorough explanation <a href="https://www.bhphotovideo.com/explora/photography/features/debunking-myths-surrounding-sun-and-your-camera" target="_blank">here</a>). You can protect your camera in several ways, including:
+          <ul class="answer">
+            <li>Leave lens cap on until immediately before imaging at the onset of totality.</li>
+            <li>Use a solar filter on your camera and remove it at the beginning of totality.</li>
+          </ul>
+          In addition to the above two options, it is suggested to cover your camera in a white cloth to keep it cool during the heat of the August day.
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_mirror_up"></a>Is locking the mirror in the up position helpful?</div>
+          <div class="answer">
+            The ability to lock the camera mirror in the up position is useful to reduce camera shake when taking images.
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_image_stabilization"></a>Should I disable the image stabilization feature of my lens?</div>
+          <div class="answer">
+            <a href="https://www.bhphotovideo.com/explora/photography/tips-and-solutions/image-stabilization-when-use-it-and-when-turn-it">Some experts</a> recommend disabling the image stabilization feature, as it can induce some slight vibrations to the camera system, and thus blurring, to an image.
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="equipment_submit"></a>How soon should I submit my images after totality is over?</div>
+          <div class="answer">
+            Hopefully you will have access to the internet so you can upload your images soon after the end of totality, preferably within an hour of the end of the eclipse, but also for a week (maybe more) after.
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Photos</div>
+        <div class="item">
+          <div class="question"><a name="photos_file"></a>What type of file do you want for photos?</div>
+          <div class="answer">
+            RAW, JPEG and TIFF files are accepted. ZIP files are not accepted, but you can upload multiple images at once.
+            <p>RAW files accepted in the following formats: .3fr, .ari, .arw, .bay, .crw, .cr2, .cap, .data, .dcs, .dcr, .dng, .drf, .eip, .erf, .fff, .gpr, .k25, .kdc, .mdc, .mef, .mos, .mrw, .nef, .nrw, .obm, .orf, .pef, .ptx, .pxn, .r3d, .raf, .raw, .rwl, .rw2, .rwz, .sr2, .srf, .srw, .x3f</p>
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="photos_what_happens"></a>What happens to the images I submit?</div>
+          <div class="answer">
+            <p>Your photos will be included in a publicly available dataset that scientists around the world will use to study the sun and its atmosphere.</p>
+            <p>If you’re a member of the Photo Team (volunteers who signed up ahead of time) your photos will also be included in the “Megamovie”. This will be an early preview of the dataset, where we algorithmically stitch together photos from across the US into a continuous view of the corona as the eclipse passes overhead.</p>
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="photos_dataset"></a>What information will be public in this dataset?</div>
+          The dataset will include information in two formats: EXIF data in each photo and a database. The information in the dataset will include:
+          <div class="answer">
+            <ul>Photographer name - From account used to submit photos (optional, see below) - EXIF</ul>
+            <ul>Unique user ID - Database only</ul>
+            <ul>GPS location (if included in photo) - EXIF and database</ul>
+            <ul>Timestamp - EXIF and database</ul>
+            <ul>Camera specifics (make, model, etc) - EXIF only (database has normalized camera class)</ul>
+            <ul>Photo specifics (exposure, ISO, etc.) - EXIF only</ul>
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="photos_anonymous"></a>Is there a way to submit photos without my name attached?</div>
+          <div class="answer">
+            Yes, if you would like to submit photos without your name attached, just check the “Don’t include my name in the public database” checkbox during the upload sequence. This will submit your photos to the public database without your name attached.
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="photos_upload"></a>Should I upload all photos at once after the eclipse?</div>
+          <div class="answer">
+            You are welcome to upload all photos just after the eclipse. However, if upload times are slow for you due to local internet use, feel free to upload 1-5 images for use in the first Megamovie compilation. Pick images that show any part of the corona (at 0-4 solar diameters) looking its best. JPEG files are much smaller than RAW files, so converting them will speed up upload time. Then once you get back to a comfortable setting with good internet, please upload the rest of your images of totality for use in the science part of this project.
+          </div>
+        </div>
+        <div class="item">
+          <div class="question"><a name="photos_licenses"></a>How do photo licenses work for the project?</div>
+          <ul class="answer">
+            <li>All photos submitted to the project will be released under a <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 (Public Domain) license</a>. This means that it will be part of the public domain and easy for the science community to use for scientific research and future projects.</li>
+            <li>You will have an option to add your name, and we’ll include it in the Megamovie project credits, or you can submit your photo without your name attached. Your acknowledgement and acceptance of such use will be handled through the upload process on the website.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="question"><a name="photos_questions"></a>Still have questions?</div>
+          <div class="answer">
+            Feel free to write to the Megamovie Photo Team Coordinators at the Astronomical Society of the Pacific: <a href="mailto:megamovie@astrosociety.org ">megamovie@astrosociety.org</a>
+            <p>
+              See the <a href="https://docs.google.com/document/d/1rq3yjEdZaSLUWbcJtfX4LNJlOJED0jMqJQYPKhqj978/pub" target="_blank">Basic Photo Team Setup</a> or the <a href="https://docs.google.com/document/d/1lbDVmOKzQGYGt7r1rIwJwdyhu55bGeuHCqSTCYsrjTo/pub" target="_blank">Advanced Photo Team Setup</a> for detailed information about taking images of totality.
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'eclipse-faq',
+      behaviors: [EclipseBehaviors.ScrollToAnchorBehavior],
+
+      ready: function() {
+        this._makeTableOfContents();
+      },
+
+      _makeTableOfContents: function() {
+        var tocContent = this._getQuestions().map(function(question) {
+          var anchorName = Polymer.dom(question).querySelector("a").getAttribute("name");
+          var textContent = Polymer.dom(question).textContent;
+          return "<a href='/faq#" + anchorName + "'>" + textContent + "</a>";
+        }).join("<br>");
+
+        this.$.tocholder.innerHTML = tocContent;
+      },
+
+      _getQuestions: function() {
+        return Polymer.dom(this.root).querySelectorAll(".item").map(function(node) {
+            return Polymer.dom(node).querySelector(".question");
+        });
+      }
+    });
+  </script>
+</dom-module>

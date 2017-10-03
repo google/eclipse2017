@@ -16,17 +16,18 @@
 """Update roles for a user."""
 
 import argparse
-from gcloud import datastore
+from google.cloud import datastore
 
 DEFAULT_PROJECT = 'eclipse-2017-test'
-INVALID_USER = '-1'
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Update roles for a user.')
     parser.add_argument('--project_id', type=str, default=DEFAULT_PROJECT,
                         help = 'Project ID to apply updates to')
-    parser.add_argument('--user_id', type=str, default=INVALID_USER,
-                        help = 'User ID to apply updates to')
+    parser.add_argument('--user_id_file', type=str,
+                        help = 'File of user ids to apply updates to (combined with --user_id)')
+    parser.add_argument('--user_id', type=str,
+                        help = 'Single user id to apply updates to (combined with --user_id_file)')
     parser.add_argument('--add_roles', nargs='+', type=str, default = [],
                         help = 'Roles to add to user')
     parser.add_argument('--remove_roles', nargs='+', type=str, default = [],
@@ -38,24 +39,32 @@ def main():
 
     client = datastore.Client(args.project_id)
 
-    key = client.key("UserRole", args.user_id)
-    entity = client.get(key)
+    user_ids = []
+    if args.user_id_file:
+        f = open(args.user_id_file)
+        user_ids.extend([line.strip() for line in f.readlines()])
+    if args.user_id:
+        user_ids.append(args.user_id)
 
-    if entity:
-        roles = set(entity['roles'])
-        print "original roles:", roles
-        for role in args.add_roles:
-            roles.add(unicode(role, 'utf8'))
-        for role in args.remove_roles:
-            if role in roles:
-                roles.remove(unicode(role, 'utf8'))
+    for user_id in user_ids:
+        key = client.key("UserRole", user_id)
+        entity = client.get(key)
 
-        roles = list(roles)
-        print "new roles:", roles
-        entity['roles'] = roles
-        client.put(entity)
-    else:
-        print "No such user:", args.user_id
+        if entity:
+            roles = set(entity['roles'])
+            print "original roles:", roles
+            for role in args.add_roles:
+                roles.add(unicode(role, 'utf8'))
+            for role in args.remove_roles:
+                if role in roles:
+                    roles.remove(unicode(role, 'utf8'))
+
+            roles = list(roles)
+            print "new roles:", roles
+            entity['roles'] = roles
+            client.put(entity)
+        else:
+            print "No such user:", user_id
 
 
 if __name__ == '__main__':

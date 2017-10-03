@@ -1,0 +1,57 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: geo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: geo-backend
+    matchExpressions:
+      - {key: tier, operator: In, values: [geo-backend]}
+  template:
+    metadata:
+      labels:
+        app: geo
+        tier: geo-backend
+    spec:
+      containers:
+        - name: geo-server
+          image: {{GCR_PREFIX}}/geo-server
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 8080
+          # TODO(dek): health probe
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 512M
+              requests:
+                  cpu: 100m
+                  memory: 512M
+        - name: geo-nginx
+          image: {{GCR_PREFIX}}/geo-nginx
+          ports:
+            - containerPort: 80
+          livenessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          readinessProbe:
+              httpGet:
+                  path: /healthz
+                  port: 80
+          resources:
+              limits:
+                  cpu: 1000m
+                  memory: 128M
+              requests:
+                  cpu: 100m
+                  memory: 128M

@@ -25,6 +25,7 @@ limitations under the License.
 <link rel="import" href="../bower_components/app-route/app-route.html">
 <link rel="import" href="../bower_components/google-signin/google-signin.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-selector/iron-selector.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
@@ -139,6 +140,10 @@ limitations under the License.
         background: #303030;
       }
 
+      iron-pages {
+        @apply(--layout-flex);
+      }
+
       @media all and (min-width:600px) {
         #signin {
           position:relative;
@@ -173,58 +178,66 @@ limitations under the License.
         data="{{routeData}}"
         tail="{{subroute}}"></app-route>
 
-    <app-drawer-layout fullbleed>
+    <!-- Main content -->
+    <app-header-layout fullbleed>
 
-      <!-- Main content -->
-      <app-header-layout>
+      <app-header id="header" fixed reveals effects="waterfall">
+        <app-toolbar class="tabs-bar">
+          <div class="title-holder" signedin$="{{isSignedIn}}"><a class="title" href="/" horizontal><img src="/images/logo.svg"/><h1>Eclipse Megamovie 2017</h1></a></div>
+          <paper-tabs selected="[[page]]" attr-for-selected="name" sticky scrollable$="{{!wideLayout}}">
+            <paper-tab name="overview" link><a href="/">Home</a></paper-tab>
+            <paper-tab name="about" link><a href="/about">Eclipse</a></paper-tab>
+            <paper-tab name="megamovie" link><a href="/megamovie">Megamovie</a></paper-tab>
+            <paper-tab name="safety" link><a href="/safety">Safety</a></paper-tab>
+            <paper-tab name="simulator" link><a href="/simulator">Simulator</a></paper-tab>
+            <paper-tab name="resources" link><a href="/resources">Resources</a></paper-tab>
+            <paper-tab name="profile" link hidden$="{{!isSignedIn}}">
+              <a href="/profile">
+                <span class="profile-label">Profile</span>
+                <img class="profile-image"/>
+              </a>
+            </paper-tab>
+          </paper-tabs>
+          <google-signin
+              id="signin"
+              scopes="profile"
+              raised="true"
+              on-google-signin-success="onSignIn"
+              on-google-signed-out="onSignOut"
+              hidden$="{{isSignedIn}}"
+              on-tap="_handleSigninClick"
+              ></google-signin>
+        </app-toolbar>
+      </app-header>
 
-        <app-header id="header" fixed reveals effects="waterfall">
-          <app-toolbar class="tabs-bar">
-            <div class="title-holder" signedin$="{{isSignedIn}}"><a class="title" href="/" horizontal><img src="/images/logo.svg"/><h1>Eclipse Megamovie 2017</h1></a></div>
-            <paper-tabs selected="[[page]]" attr-for-selected="name" sticky scrollable$="{{!wideLayout}}">
-              <paper-tab name="overview" link><a href="/">Home</a></paper-tab>
-              <paper-tab name="about" link><a href="/about">Eclipse</a></paper-tab>
-              <paper-tab name="megamovie" link><a href="/megamovie">Megamovie</a></paper-tab>
-              <paper-tab name="safety" link><a href="/safety">Safety</a></paper-tab>
-              <paper-tab name="resources" link><a href="/resources">Resources</a></paper-tab>
-              <paper-tab name="profile" link hidden$="{{!isSignedIn}}">
-                <a href="/profile">
-                  <span class="profile-label">Profile</span>
-                  <img class="profile-image"/>
-                </a>
-              </paper-tab>
-            </paper-tabs>
-            <google-signin
-                id="signin"
-                scopes="profile"
-                raised="true"
-                on-google-signin-success="onSignIn"
-                on-google-signed-out="onSignOut"
-                hidden$="{{isSignedIn}}"
-                on-tap="_handleSigninClick"
-                ></google-signin>
-          </app-toolbar>
-        </app-header>
+      <iron-pages
+          id="pagecontent"
+          selected="[[page]]"
+          attr-for-selected="id"
+          fallback-selection="view404"
+          on-iron-select="_onSelectedPage"
+          on-iron-deselect="_onDeselectedPage"
+          role="main">
+        <eclipse-overview id="overview" headerColor="#212121"></eclipse-overview>
+        <eclipse-about id="about" headerColor="#212121"></eclipse-about>
+        <eclipse-megamovie id="megamovie" headerColor="#4481f8" header="{{_getHeader()}}"></eclipse-megamovie>
+        <eclipse-safety id="safety" headerColor="#212121"></eclipse-safety>
+        <eclipse-resources id="resources" headerColor="#0f9d58"></eclipse-resources>
+        <eclipse-profile id="profile" headerColor="#212121"></eclipse-profile>
+        <eclipse-simulator id="simulator" headerColor="#212121"></eclipse-simulator>
+        <eclipse-view404 id="view404"></eclipse-view404>
+        <eclipse-admin id="admin" headerColor="#673AB7"></eclipse-admin>
+        <eclipse-review id="review"></eclipse-review>
+        <eclipse-faq id="faq" header="{{_getHeader()}}"></eclipse-faq>
+        <eclipse-instructions id="instructions" header="{{_getHeader()}}"></eclipse-instructions>
+        <eclipse-certificate id="certificate" header="{{_getHeader()}}" footer="{{_getFooter()}}" standalone></eclipse-certificate>
+      </iron-pages>
 
-        <iron-pages
-            id="pagecontent"
-            selected="[[page]]"
-            attr-for-selected="id"
-            fallback-selection="view404"
-            role="main">
-          <eclipse-overview id="overview" headerColor="#212121"></eclipse-overview>
-          <eclipse-about id="about" headerColor="#212121"></eclipse-about>
-          <eclipse-megamovie id="megamovie" headerColor="#4481f8"></eclipse-megamovie>
-          <eclipse-safety id="safety" headerColor="#212121"></eclipse-safety>
-          <eclipse-resources id="resources" headerColor="#0f9d58"></eclipse-resources>
-          <eclipse-profile id="profile" headerColor="#212121"></eclipse-profile>
-          <eclipse-view404 id="view404"></eclipse-view404>
-          <eclipse-admin id="admin"></eclipse-admin>
-        </iron-pages>
+      <footer>
+        <eclipse-footer id="footer"></eclipse-footer>
+      </footer>
+    </app-header-layout>
 
-        <eclipse-footer></eclipse-footer>
-      </app-header-layout>
-    </app-drawer-layout>
 
     <iron-media-query query="min-width: 600px" query-matches="{{wideLayout}}"></iron-media-query>
   </template>
@@ -240,10 +253,21 @@ limitations under the License.
           reflectToAttribute: true,
           observer: '_pageChanged'
         },
+        path: {
+          type: String
+        },
         hash: {
           type: String,
-          reflectToAttribute: true,
-          observer: 'scrollToAnchor'
+          reflectToAttribute: true
+        },
+        query: {
+          type: String
+        },
+        routeData: {
+          type: Object
+        },
+        subroute: {
+          type: String
         },
         wideLayout: {
           type: Boolean,
@@ -289,6 +313,20 @@ limitations under the License.
         }
       },
 
+      _onSelectedPage: function(event) {
+        var page = event.detail.item;
+        if (page.onSelectedPage) {
+          page.onSelectedPage();
+        }
+      },
+
+      _onDeselectedPage: function(event) {
+        var page = event.detail.item;
+        if (page.deselected) {
+          page.deselected();
+        }
+      },
+
       _showPage404: function() {
         this.page = 'view404';
       },
@@ -301,15 +339,7 @@ limitations under the License.
         var signin = this.$$("#signin");
         signin.setAttribute("client-id", client_id);
         this.$.profile.userService = this.$.userService;
-      },
-
-      scrollToAnchor: function(hash) {
-        if (hash && hash.length > 1) {
-          var ironPage = this.$$('#' + this.page);
-          if (ironPage) {
-            ironPage.hash = hash;
-          }
-        }
+        this.$.certificate.userService = this.$.userService;
       },
 
       onSignIn: function() {
@@ -337,6 +367,8 @@ limitations under the License.
         if (this.page == 'profile') {
           this.path = "/";
         }
+        this.$$(".profile-image").setAttribute("hidden", "hidden");
+        this.$$(".profile-label").removeAttribute("hidden");
         this.$$("paper-tabs").notifyResize();
         Polymer.updateStyles();
       },
@@ -352,6 +384,12 @@ limitations under the License.
             this.path = "/profile";
           }
         }
+      },
+      _getHeader: function() {
+        return this.$.header;
+      },
+      _getFooter: function() {
+        return this.$.footer;
       }
     });
   </script>

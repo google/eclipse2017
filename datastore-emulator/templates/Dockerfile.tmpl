@@ -24,9 +24,9 @@ RUN apt-get install -yqq python openjdk-8-jre && \
     curl https://sdk.cloud.google.com | bash && \
     /root/google-cloud-sdk/bin/gcloud config set project {{PROJECT_ID}} && \
     /root/google-cloud-sdk/bin/gcloud components install beta && \
-    /root/google-cloud-sdk/bin/gcloud components install gcd-emulator && \
+    /root/google-cloud-sdk/bin/gcloud components install cloud-datastore-emulator && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE {{HOST_PORT}}
 
-CMD /root/google-cloud-sdk/bin/gcloud beta emulators datastore start --legacy --host-port=0.0.0.0:{{HOST_PORT}} --consistency="1.0" --data-dir=$DATA_DIR
+CMD /root/google-cloud-sdk/bin/gcloud beta emulators datastore start --no-legacy --host-port=0.0.0.0:{{HOST_PORT}} --consistency="1.0" --data-dir=$DATA_DIR

@@ -15,8 +15,10 @@
 
 FROM {{GCR_PREFIX_WITH_SLASH}}app-container:latest
 
+RUN apt-get install -y --no-install-recommends python-wand libmagickwand-dev && \
+    apt-get clean && rm -rf /tmp/* /var/tmp/*
 ADD application.tar /app
 
 WORKDIR /app
 USER www-data
-CMD ["gunicorn", "main:app", "-b", "0.0.0.0:8080", "-t", "90", "-w", "8", "--log-level", "DEBUG", "--access-logfile", "/dev/stdout", "--error-logfile", "/dev/stderr"]
+CMD ["gunicorn", "main:app", "-b", "0.0.0.0:8080", "-t", "600", "-w", "8", "--log-level", "INFO", "--access-logfile", "/dev/stdout", "--error-logfile", "/dev/stderr"]

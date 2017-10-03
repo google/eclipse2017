@@ -21,7 +21,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV APT_LISTCHANGES_FRONTEND none
 ENV CLOUDSDK_CORE_DISABLE_PROMPTS 1
 
-RUN apt-get install -y --no-install-recommends python-opencv && \
+RUN apt-get install -y --no-install-recommends python-opencv python-wand libmagickwand-dev libgeos-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
