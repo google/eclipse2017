@@ -18,35 +18,9 @@ set -e
 echo "Deploying..."
 
 if [ "$LOCAL_DEV" != "true" ]; then
-  if [[ -z $APP || $APP == profile-server || $APP == profile-nginx ]]; then
-    kubectl apply -f build/profile/deployment.yaml --record
-    kubectl expose deployment profile --selector="app=profile" --port=80 --target-port=80 --type=NodePort
-  fi
-
-  if [[ -z $APP || $APP == admin-server || $APP == admin-nginx ]]; then
-    kubectl apply -f build/admin/deployment.yaml --record
-    kubectl expose deployment admin --selector="app=admin" --target-port=80 --type=NodePort
-  fi
-
   if [[ -z $APP || $APP == geo-server || $APP == geo-nginx ]]; then
     kubectl apply -f build/geo/deployment.yaml --record
     kubectl expose deployment geo --selector="app=geo" --target-port=80 --type=NodePort
-  fi
-
-  if [[ -z $APP || $APP == upload-server || $APP == upload-nginx || $APP == upload-daemon ]]; then
-    kubectl apply -f build/upload/deployment.yaml --record
-    kubectl expose deployment upload --selector="app=upload" --target-port=80 --type=NodePort
-  fi
-
-  if [[ -z $APP || $APP == photo-server || $APP == photo-nginx ]]; then
-    kubectl apply -f build/photo/deployment.yaml --record
-    kubectl expose deployment photo --selector="app=photo" --port=80 --target-port=80 --type=NodePort
-  fi
-
-  if [ "$UNRELEASED" == "true" ]; then
-    if [[ -z $APP || $APP == movie-daemon || $APP == upload-nginx || $APP == upload-daemon ]]; then
-      kubectl apply -f build/movie/deployment.yaml --record
-    fi
   fi
 
   if [[ -z $APP || $APP == static-nginx ]]; then
@@ -54,9 +28,6 @@ if [ "$LOCAL_DEV" != "true" ]; then
     kubectl expose deployment static-nginx --selector="app=static-nginx" --port=80 --target-port=80 --type=NodePort
   fi
 else
-
-  [ ! -d pending-uploads ] && mkdir pending-uploads
-  chmod ugo+rwx pending-uploads
 
   GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
 
@@ -76,22 +47,9 @@ else
   DATASTORE_EMULATOR_HOST_PORT=8999
   DATASTORE_EMULATOR_HOST="datastore-emulator:${DATASTORE_EMULATOR_HOST_PORT}"
 
-  LINK="--link profile-nginx --link admin-nginx --link static-nginx --link geo-nginx --link upload-nginx --link photo-nginx"
-  [[ -z $APP || $APP == profile-server ]] && docker run -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name profile-server --link datastore-emulator ${GCR_PREFIX}/profile-server
-  [[ -z $APP || $APP == profile-nginx ]] && docker run -tid --name profile-nginx --link profile-server ${GCR_PREFIX}/profile-nginx
-  [[ -z $APP || $APP == admin-server ]] && docker run -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name admin-server --link datastore-emulator ${GCR_PREFIX}/admin-server
-  [[ -z $APP || $APP == admin-nginx ]] && docker run -tid --name admin-nginx --link admin-server ${GCR_PREFIX}/admin-nginx
+  LINK="--link static-nginx --link geo-nginx"
   [[ -z $APP || $APP == geo-server ]] && docker run -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name geo-server --link datastore-emulator ${GCR_PREFIX}/geo-server
   [[ -z $APP || $APP == geo-nginx ]] && docker run -tid --name geo-nginx --link geo-server ${GCR_PREFIX}/geo-nginx
-  [[ -z $APP || $APP == upload-server ]] && docker run -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name upload-server -v $(pwd)/pending-uploads:/pending-uploads --link datastore-emulator ${GCR_PREFIX}/upload-server
-  [[ -z $APP || $APP == upload-nginx ]] && docker run -tid --name upload-nginx --link upload-server ${GCR_PREFIX}/upload-nginx
-  [[ -z $APP || $APP == upload-daemon ]] && docker run -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name upload-daemon -v $(pwd)/pending-uploads:/pending-uploads --link datastore-emulator ${GCR_PREFIX}/upload-daemon
-  [[ -z $APP || $APP == photo-server ]] && docker run -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name photo-server --link datastore-emulator ${GCR_PREFIX}/photo-server
-  [[ -z $APP || $APP == photo-nginx ]] && docker run -tid --name photo-nginx --link photo-server ${GCR_PREFIX}/photo-nginx
-  if [ "$UNRELEASED" == "true" ]; then
-    [[ -z $APP || $APP == movie-daemon ]] && docker run  -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name movie-daemon --link datastore-emulator ${GCR_PREFIX}/movie-daemon
-    [[ -z $APP || $APP == image-processor-daemon ]] && docker run  -e DATASTORE_EMULATOR_HOST="$DATASTORE_EMULATOR_HOST" -tid --name image-processor-daemon --link datastore-emulator ${GCR_PREFIX}/image-processor-daemon
-  fi
   if [[ -z $APP || $APP == static-nginx ]]; then
     docker run -tid --name static-nginx ${GCR_PREFIX}/static-nginx
   fi

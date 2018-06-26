@@ -21,6 +21,6 @@ if [ "$LOCAL_DEV" != "true" ]; then
     kubectl apply -f build/system-test-container/test_pod.yaml --record
 else
   GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
-  LINK="--link profile-nginx --link admin-nginx --link static-nginx"
+  LINK="--link static-nginx"
   docker run -ti --link static-nginx --name system-test ${GCR_PREFIX}/system-test-container
 fi

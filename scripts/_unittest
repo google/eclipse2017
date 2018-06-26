@@ -17,7 +17,7 @@
 
 #set -e
 
-if [ "$APP" != "" ] && [ "$APP" != "profile-server" ] && [ "$APP" != "upload-server" ] && [ "$APP" != "upload-daemon" ] && [ "$APP" != "movie-daemon" ]; then
+if [ "$APP" != "" ]; then
 	echo "NO TESTS RUN"
 	exit 0
 fi
@@ -32,44 +32,6 @@ if [ "$APP" == "" ]; then
 	cd ..
 fi
 
-# Upload daemon tests
-UPLOAD_DAEMON_PASS=0
-if [ "$APP" == "" ] || [ "$APP" == upload-daemon ]; then
-	echo; echo "=== Upload server tests ==="
-	cd upload/daemon/tests
-	./run_tests
-	UPLOAD_DAEMON_PASS=$?
-	cd ../../..
-fi
-
-# Upload server unit tests
-UPLOAD_SERVER_PASS=0
-if [ "$APP" == "" ] || [ "$APP" == upload-server ]; then
-	cd upload/server/tests
-	./run_tests
-	UPLOAD_SERVER_PASS=$?
-	cd ../../..
-fi
-
-# Movie daemon unit tests
-MOVIE_DAEMON_PASS=0
-if [ "$APP" == "" ] || [ "$APP" == movie-daemon ]; then
-	echo; echo "=== Movie daemon tests ==="
-	cd movie/daemon/tests
-	./run_tests
-	MOVIE_DAEMON_PASS=$?
-	cd ../../..
-fi
-
-# Profile tests
-PROFILE_PASS=0
-if [ "$APP" == "" ] || [ "$APP" == profile-server ]; then
-	echo; echo "=== Profile container tests ==="
-	cd profile/app/tests/flask
-	./run_flask_tests
-	PROFILE_PASS=$?
-	cd ../..
-fi
 
 # Final result
 echo

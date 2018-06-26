@@ -25,24 +25,10 @@ GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
 
 IMAGES="base-container \
         app-container \
-        admin-server \
-        admin-nginx \
         geo-server \
         geo-nginx \
-        profile-server \
-        profile-nginx \
         static-nginx \
-        system-test-container \
-        photo-server \
-        photo-nginx \
-        upload-server \
-        upload-nginx \
-        upload-daemon"
-if [ "$UNRELEASED" == "true" ]; then
-  IMAGES="$IMAGES \
-          movie-daemon \
-          image-processor-daemon"
-fi
+        system-test-container"
 
 for img in ${IMAGES}; do
   [[ -z $APP || $APP == $img ]] && $PUSHCMD $GCR_PREFIX/$img

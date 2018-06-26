@@ -14,8 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ENV local-dev will run a load balancer emulator nginx process in profile and
-#     upload-server containers
+# ENV local-dev will run a load balancer emulator nginx process
 
 # CMD kill:             kills any running containers
 # CMD clean:            cleans up any existing docker images
@@ -45,14 +44,10 @@ export UNRELEASED=false
 
 CMDLIST=("kill", "clean", "create_secret", "build", "push", "deploy", \
          "update", "teardown", "unittest", "systest", "creds")
-DEPLOYMENTLIST=("static-nginx", "profile", "geo", "admin", "upload")
+DEPLOYMENTLIST=("static-nginx", "geo")
 
 APPLIST=("base-container", "app-container", "nginx-container", "static-nginx", \
-         "profile-server", "profile-nginx", "admin-server", "admin-nginx", \
          "geo-server", "geo-nginx", \
-         "upload-server", "upload-nginx", "upload-daemon", \
-         "photo-server", "photo-nginx", \
-         "movie-daemon", "image-processor-daemon", \
          "datastore-emulator", "nginx-lb-emulator", \
          "test-container", "system-test-container")
 ENVLIST=("local-dev", "dev", "test", "prod")

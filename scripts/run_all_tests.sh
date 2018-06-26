@@ -15,11 +15,4 @@
 # limitations under the License.
 failed=0
 pushd common_tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
-pushd profile/app/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
-pushd admin/app/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
-if [ "$UNRELEASED" == "true" ]; then
-  pushd upload/daemon/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
-  pushd upload/server/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
-  pushd movie/daemon/tests; ./run_tests; if [ $? != 0 ]; then failed=1; fi; popd
-fi
 exit $failed

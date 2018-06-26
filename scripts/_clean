@@ -18,12 +18,6 @@ echo "Cleaning..."
 
 GCR_PREFIX="gcr.io/$GCLOUD_PROJ_PREFIX${GCLOUD_PROJ_PREFIX:+"/"}$GCLOUD_PROJ"
 IMAGES="nginx-lb-emulator \
-        upload-daemon \
-        upload-nginx \
-        upload-server \
-        movie-daemon \
-        profile-nginx \
-        profile \
         static-nginx \
         nginx-container \
         app-container \
