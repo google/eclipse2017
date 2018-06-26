@@ -15,7 +15,6 @@ limitations under the License.
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
-<link rel="import" href="../bower_components/google-signin/google-signin.html">
 <link rel="import" href="../bower_components/google-youtube/google-youtube.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/marked-element/marked-element.html">
@@ -158,10 +157,6 @@ limitations under the License.
         @apply(--paper-font-caption);
       }
 
-      #signin {
-        margin-left:36px;
-      }
-
       .video-holder {
         position:relative;
         background:#000;
@@ -209,10 +204,6 @@ limitations under the License.
       .video-description h2 {
         @apply(--paper-font-display1);
       }
-
-      .metric {
-        @apply(--paper-font-display1);
-      }
     </style>
     <app-location id="urlbar" route="{{route}}" query-params="{{queryParams}}"></app-location>
     <!-- Home page content -->
@@ -232,15 +223,7 @@ limitations under the License.
         <div class="video-description">
           <h2>Megamovie 2017</h2>
           <p>This first-of-its-kind citizen science project is a collection of photos submitted by a group of dedicated volunteers from locations across the United States during the August 21, 2017 total solar eclipse. These individual photos have been stitched together to give us an extended look at the sun’s atmosphere as the eclipse traversed the US.</p>
-          <p>This is but a preview of what can be made with these data. This video was compiled algorithmically, but future versions can be compiled with additional hands-on editing to improve the outcome. The full dataset of images will be made public, allowing for improved movies, and providing opportunities for the scientific community to study the sun for years to come.</p>
-          <div>
-            <div class="metric">12.3k</div>
-            <span>Participants</span>
-          </div>
-          <div>
-            <div class="metric">46k</div>
-            <span>Photographs</span>
-          </div>
+          <p>This is but a preview of what can be made with these data. This video was compiled algorithmically, but future versions can be compiled with additional hands-on editing to improve the outcome. To see the latest from the project, check out the full dataset of images on <a href="https://console.cloud.google.com/launcher/details/google-cloud-public-datasets/eclipse-megamovie" target="_blank">Google Cloud Open Datasets</a> and help the scientists categorize our images in <a href="https://www.zooniverse.org/projects/robertlet/megamovie-maestros-i" target="_blank">Megamovie Maestros I</a>. We are excited to see what improved movies and scientific discoveries come from the dataset in the years to come.</p>
         </div>
       </div>
 
@@ -345,6 +328,10 @@ limitations under the License.
             "url" : "https://www.ucolick.org/"
           },
           {
+            "title" : "Sonoma State University",
+            "url" : "http://epo.sonoma.edu/"
+          },
+          {
             "title" : "Space Sciences Laboratory, University of California, Berkeley",
             "url" : "http://www.ssl.berkeley.edu/"
           },
@@ -357,14 +344,6 @@ limitations under the License.
             "url" : "http://sites.williams.edu/iau-eclipses/"
           }
         ];
-      },
-
-      onSignIn: function() {
-        this.isSignedIn = this.$.signin.signedIn;
-      },
-
-      onSignOut: function() {
-        this.isSignedIn = this.$.signin.signedIn;
       },
 
       deselected: function() {

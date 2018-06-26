@@ -23,7 +23,6 @@ limitations under the License.
 <link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
 <link rel="import" href="../bower_components/app-route/app-location.html">
 <link rel="import" href="../bower_components/app-route/app-route.html">
-<link rel="import" href="../bower_components/google-signin/google-signin.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
@@ -110,10 +109,6 @@ limitations under the License.
         margin-right:100px;
       }
 
-      .title-holder[signedin] {
-        margin-right:0px;
-      }
-
       .title {
         @apply(--layout-center);
         @apply(--layout-self-stretch);
@@ -122,18 +117,6 @@ limitations under the License.
       }
       .title img {
         margin-right: 12px;
-      }
-
-      .profile-image {
-        border-radius: 50%;
-        height:75%;
-        max-height:50px;
-      }
-
-      #signin {
-        position:absolute;
-        right: 8px;
-        top:8px;
       }
 
       #pagecontent {
@@ -145,12 +128,6 @@ limitations under the License.
       }
 
       @media all and (min-width:600px) {
-        #signin {
-          position:relative;
-          right: auto;
-          top: auto;
-        }
-
         paper-tabs {
            height:80px;
         }
@@ -183,7 +160,7 @@ limitations under the License.
 
       <app-header id="header" fixed reveals effects="waterfall">
         <app-toolbar class="tabs-bar">
-          <div class="title-holder" signedin$="{{isSignedIn}}"><a class="title" href="/" horizontal><img src="/images/logo.svg"/><h1>Eclipse Megamovie 2017</h1></a></div>
+          <div class="title-holder"><a class="title" href="/" horizontal><img src="/images/logo.svg"/><h1>Eclipse Megamovie 2017</h1></a></div>
           <paper-tabs selected="[[page]]" attr-for-selected="name" sticky scrollable$="{{!wideLayout}}">
             <paper-tab name="overview" link><a href="/">Home</a></paper-tab>
             <paper-tab name="about" link><a href="/about">Eclipse</a></paper-tab>
@@ -191,22 +168,7 @@ limitations under the License.
             <paper-tab name="safety" link><a href="/safety">Safety</a></paper-tab>
             <paper-tab name="simulator" link><a href="/simulator">Simulator</a></paper-tab>
             <paper-tab name="resources" link><a href="/resources">Resources</a></paper-tab>
-            <paper-tab name="profile" link hidden$="{{!isSignedIn}}">
-              <a href="/profile">
-                <span class="profile-label">Profile</span>
-                <img class="profile-image"/>
-              </a>
-            </paper-tab>
           </paper-tabs>
-          <google-signin
-              id="signin"
-              scopes="profile"
-              raised="true"
-              on-google-signin-success="onSignIn"
-              on-google-signed-out="onSignOut"
-              hidden$="{{isSignedIn}}"
-              on-tap="_handleSigninClick"
-              ></google-signin>
         </app-toolbar>
       </app-header>
 
@@ -223,14 +185,10 @@ limitations under the License.
         <eclipse-megamovie id="megamovie" headerColor="#4481f8" header="{{_getHeader()}}"></eclipse-megamovie>
         <eclipse-safety id="safety" headerColor="#212121"></eclipse-safety>
         <eclipse-resources id="resources" headerColor="#0f9d58"></eclipse-resources>
-        <eclipse-profile id="profile" headerColor="#212121"></eclipse-profile>
         <eclipse-simulator id="simulator" headerColor="#212121"></eclipse-simulator>
         <eclipse-view404 id="view404"></eclipse-view404>
-        <eclipse-admin id="admin" headerColor="#673AB7"></eclipse-admin>
-        <eclipse-review id="review"></eclipse-review>
         <eclipse-faq id="faq" header="{{_getHeader()}}"></eclipse-faq>
         <eclipse-instructions id="instructions" header="{{_getHeader()}}"></eclipse-instructions>
-        <eclipse-certificate id="certificate" header="{{_getHeader()}}" footer="{{_getFooter()}}" standalone></eclipse-certificate>
       </iron-pages>
 
       <footer>
@@ -274,12 +232,6 @@ limitations under the License.
           value: false,
           observer: '_onLayoutChange',
         },
-        isSignedIn: {
-          type: Boolean,
-          value: false,
-          reflectToAttribute: true,
-          notify: true
-        }
       },
 
       observers: [
@@ -336,55 +288,8 @@ limitations under the License.
       },
 
       ready: function() {
-        var signin = this.$$("#signin");
-        signin.setAttribute("client-id", client_id);
-        this.$.profile.userService = this.$.userService;
-        this.$.certificate.userService = this.$.userService;
       },
 
-      onSignIn: function() {
-        var user = gapi.auth2.getAuthInstance()['currentUser'].get();
-        if (user) {
-          this.isSignedIn = true;
-          var imageUrl = user.getBasicProfile().getImageUrl();
-          if (imageUrl) {
-            this.$$(".profile-image").src = user.getBasicProfile().getImageUrl();
-            this.$$(".profile-image").removeAttribute("hidden");
-            this.$$(".profile-label").setAttribute("hidden", "hidden");
-          } else {
-            this.$$(".profile-image").setAttribute("hidden", "hidden");
-            this.$$(".profile-label").removeAttribute("hidden");
-          }
-          if (this.page == 'profile') {
-            // TODO: need to make the yellow bar show up again.
-          }
-        }
-        this.$$("paper-tabs").notifyResize();
-        Polymer.updateStyles();
-      },
-      onSignOut: function() {
-        this.isSignedIn = false;
-        if (this.page == 'profile') {
-          this.path = "/";
-        }
-        this.$$(".profile-image").setAttribute("hidden", "hidden");
-        this.$$(".profile-label").removeAttribute("hidden");
-        this.$$("paper-tabs").notifyResize();
-        Polymer.updateStyles();
-      },
-      _handleSigninClick: function() {
-        this.signinClick = true;
-      },
-      _handleUserRequest: function() {
-        if (!this.$.userService.exists && this.isSignedIn && this.signinClick) {
-          this.consoleLogIfAble("User doesn't exist yet and click happened");
-          this.signinClick = false;
-          // redirect to the profile page if not on the 404 page.
-          if (this.page != 'view404') {
-            this.path = "/profile";
-          }
-        }
-      },
       _getHeader: function() {
         return this.$.header;
       },

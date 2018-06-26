@@ -5,16 +5,12 @@
     "src/eclipse-overview.html",
     "src/eclipse-about.html",
     "src/eclipse-megamovie.html",
-    "src/eclipse-profile.html",
     "src/eclipse-resources.html",
     "src/eclipse-safety.html",
     "src/eclipse-simulator.html",
     "src/eclipse-view404.html",
     "src/eclipse-faq.html",
-    "src/eclipse-admin.html",
-    "src/eclipse-review.html",
-    "src/eclipse-instructions.html",
-    "src/eclipse-certificate.html"
+    "src/eclipse-instructions.html"
   ],
   "sources": [
     "sitemap.xml",
