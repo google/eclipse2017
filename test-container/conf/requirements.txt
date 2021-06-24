@@ -1,5 +1,5 @@
 googlemaps
-Flask==0.12
+Flask==1.0
 unittest2
 mock
 six
